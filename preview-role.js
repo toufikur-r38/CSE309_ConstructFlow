@@ -12,10 +12,16 @@
     try { sessionStorage.setItem("constructflow.demoRole", role); } catch (_) { /* URL fallback */ }
     const adminPages = ["register.html", "edit_user.html", "audit_log.html", "all_edited_projects.html", "all_edited_costs.html", "all_removed_projects.html", "all_removed_costs.html"];
     const writePages = ["add_project.html", "edit_project.html", "select_cost_project.html", "add_cost.html", "edit_cost.html", "dropdown_options.html"];
+    // Netlify Pretty URLs removes .html from links and may add a trailing slash.
+    function pageName(pathname) {
+        const name = pathname.replace(/\/+$/, "").split("/").pop() || "index";
+        return name.includes(".") ? name : name + ".html";
+    }
+    const sitePages = new Set([...adminPages, ...writePages, "index.html", "modules.html", "view_projects.html", "view_costs.html", "profile.html", "change_password.html", "login.html", "error.html"]);
     const allowed = page => (!adminPages.includes(page) || role === "admin") && (!writePages.includes(page) || role !== "viewer");
-    const page = location.pathname.split("/").pop() || "index.html";
+    const page = pageName(location.pathname);
     if (!allowed(page)) {
-        location.replace("index.html?role=" + role);
+        location.replace((location.protocol === "file:" ? "index.html" : "/") + "?role=" + role);
         return;
     }
     function applyRole() {
@@ -25,8 +31,8 @@
             if (!raw || raw.startsWith("#")) return;
             const url = new URL(raw, location.href);
             if (url.origin !== location.origin) return;
-            const target = url.pathname.split("/").pop();
-            if (!target.endsWith(".html")) return;
+            const target = pageName(url.pathname);
+            if (!sitePages.has(target)) return;
             if (!allowed(target)) {
                 const container = link.matches(".action-card") ? link.parentElement : link.closest("li") || link;
                 container.remove();
@@ -38,7 +44,7 @@
                 });
             } else {
                 url.searchParams.set("role", role);
-                link.setAttribute("href", target + url.search + url.hash);
+                link.setAttribute("href", url.pathname + url.search + url.hash);
             }
         });
         if (role !== "admin") document.getElementById("systemManageMenu")?.closest("li")?.remove();
