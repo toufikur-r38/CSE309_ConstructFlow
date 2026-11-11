@@ -5,6 +5,7 @@
     lang="en"
 >
     <head>
+        <script src="preview-role.js"></script>
         <meta charset="utf-8" />
         <meta
             content="width=device-width, initial-scale=1.0"
@@ -21473,7 +21474,7 @@
                                     id="projectNameFilter"
                                     name="project_id"
                                 >
-                                    <option value="">All Projects</option>
+                                    <option value="">All Projects</option><option value='demo-1'>Demo - Uttara Residential Building</option><option value='demo-2'>Demo - Mirpur Road Improvement</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -21487,7 +21488,7 @@
                                     id="sectorFilter"
                                     name="sector_filter"
                                 >
-                                    <option value="all">All Sectors</option>
+                                    <option value="all">All Sectors</option><option>Residential</option><option>Infrastructure</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -21564,16 +21565,7 @@
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td
-                                    class="text-center py-5 text-muted"
-                                    colspan="7"
-                                >
-                                    No projects found.
-                                </td>
-                            </tr>
-                        </tbody>
+                        <tbody><tr data-project='demo-1' data-sector='Residential' data-status='Running'><td><strong>Demo - Uttara Residential Building</strong><br><small>Residential</small></td><td>Demo Builders Ltd.<br><small>DEMO-2026-001</small></td><td>2026-11-01<br>2026-2027</td><td>Uttara, Dhaka</td><td>Budget: BDT 5,000,000.00<br>Spent: BDT 149,000.00<br>Left: BDT 4,851,000.00<br><small>2.98% used</small></td><td><span class='badge bg-success'>Running</span></td><td class='text-end'><a class='btn btn-sm btn-outline-primary' href='view_costs.html?project=demo-1'>View Costs</a></td></tr><tr data-project='demo-2' data-sector='Infrastructure' data-status='Running'><td><strong>Demo - Mirpur Road Improvement</strong><br><small>Infrastructure</small></td><td>Demo Infrastructure Ltd.<br><small>DEMO-2026-002</small></td><td>2026-11-01<br>2026-2027</td><td>Mirpur, Dhaka</td><td>Budget: BDT 3,000,000.00<br>Spent: BDT 296,000.00<br>Left: BDT 2,704,000.00<br><small>9.87% used</small></td><td><span class='badge bg-success'>Running</span></td><td class='text-end'><a class='btn btn-sm btn-outline-primary' href='view_costs.html?project=demo-2'>View Costs</a></td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -38893,5 +38885,6 @@
                     updateCounter();
                 });
         </script>
+        <script src="demo-data.js"></script>
     </body>
 </html>

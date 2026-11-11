@@ -5,6 +5,7 @@
     lang="en"
 >
     <head>
+        <script src="preview-role.js"></script>
         <meta charset="utf-8" />
         <meta
             content="width=device-width, initial-scale=1.0"
@@ -19581,7 +19582,7 @@
                 </h3>
                 <span class="text-muted small">
                     <i class="fas fa-calendar-alt me-1"></i>
-                    Live Financial Status
+                    Demo Financial Status - 12 Nov 2026
                 </span>
             </div>
             <div class="row g-4 mb-5">
@@ -19598,7 +19599,7 @@
                                     >
                                         Running Projects
                                     </p>
-                                    <h3 class="mb-0 fw-bold text-dark">0</h3>
+                                    <h3 class="mb-0 fw-bold text-dark">2</h3>
                                 </div>
                                 <div class="icon-box bg-primary bg-opacity-10 rounded-circle">
                                     <i class="fas fa-hard-hat text-primary fs-4"></i>
@@ -19620,7 +19621,7 @@
                                     >
                                         Expenses This Month
                                     </p>
-                                    <h3 class="mb-0 fw-bold text-dark">BDT 0.00</h3>
+                                    <h3 class="mb-0 fw-bold text-dark">BDT 445,000.00</h3>
                                 </div>
                                 <div class="icon-box bg-info bg-opacity-10 rounded-circle">
                                     <i class="fas fa-calendar-alt text-info fs-4"></i>
@@ -19642,7 +19643,7 @@
                                     >
                                         Expenses Today
                                     </p>
-                                    <h3 class="mb-0 fw-bold text-dark">BDT 0.00</h3>
+                                    <h3 class="mb-0 fw-bold text-dark">BDT 31,000.00</h3>
                                 </div>
                                 <div class="icon-box bg-warning bg-opacity-10 rounded-circle">
                                     <i class="fas fa-bolt text-warning fs-4"></i>
@@ -19808,23 +19809,7 @@
                                 <th class="py-3">Budget Used</th>
                             </tr>
                         </thead>
-                        <tbody id="activeProjectsBody">
-                            <tr>
-                                <td
-                                    class="text-center py-4 text-muted"
-                                    colspan="5"
-                                >
-                                    <i class="fas fa-info-circle me-1"></i> No active projects
-                                    found.
-
-                                    <a
-                                        class="text-decoration-none ms-1"
-                                        href="add_project.html"
-                                        >Add one now.</a
-                                    >
-                                </td>
-                            </tr>
-                        </tbody>
+                        <tbody id="activeProjectsBody"><tr data-budget='2.98' data-name='Demo - Uttara Residential Building'><td class='ps-4 py-3'><a href='view_costs.html?project=demo-1'>Demo - Uttara Residential Building</a></td><td>BDT 5,000,000.00</td><td>BDT 149,000.00</td><td>BDT 4,851,000.00</td><td>2.98%</td></tr><tr data-budget='9.87' data-name='Demo - Mirpur Road Improvement'><td class='ps-4 py-3'><a href='view_costs.html?project=demo-2'>Demo - Mirpur Road Improvement</a></td><td>BDT 3,000,000.00</td><td>BDT 296,000.00</td><td>BDT 2,704,000.00</td><td>9.87%</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -37062,5 +37047,6 @@
                     updateCounter();
                 });
         </script>
+        <script src="demo-data.js"></script>
     </body>
 </html>

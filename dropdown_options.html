@@ -5,6 +5,7 @@
     lang="en"
 >
     <head>
+        <script src="preview-role.js"></script>
         <meta charset="utf-8" />
         <meta
             content="width=device-width, initial-scale=1.0"
@@ -19609,10 +19610,13 @@
                             <h5 class="fw-bold mb-0 text-primary">
                                 <i class="fas fa-layer-group me-2"></i>Project Sectors
                             </h5>
-                            <span class="badge bg-primary">0</span>
+                            <span class="badge bg-primary">2</span>
                         </div>
                         <div class="card-body option-list">
-                            <p class="text-muted text-center py-4 mb-0">No sectors found.</p>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">Residential <button type="button" class="btn btn-sm btn-outline-danger" data-delete-option aria-label="Delete Residential"><i class="fas fa-trash me-1" aria-hidden="true"></i>Delete</button></li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">Infrastructure <button type="button" class="btn btn-sm btn-outline-danger" data-delete-option aria-label="Delete Infrastructure"><i class="fas fa-trash me-1" aria-hidden="true"></i>Delete</button></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -19624,10 +19628,14 @@
                             <h5 class="fw-bold mb-0 text-danger">
                                 <i class="fas fa-tags me-2"></i>Cost Types
                             </h5>
-                            <span class="badge bg-danger">0</span>
+                            <span class="badge bg-danger">3</span>
                         </div>
                         <div class="card-body option-list">
-                            <p class="text-muted text-center py-4 mb-0">No cost types found.</p>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">Materials <button type="button" class="btn btn-sm btn-outline-danger" data-delete-option aria-label="Delete Materials"><i class="fas fa-trash me-1" aria-hidden="true"></i>Delete</button></li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">Labor <button type="button" class="btn btn-sm btn-outline-danger" data-delete-option aria-label="Delete Labor"><i class="fas fa-trash me-1" aria-hidden="true"></i>Delete</button></li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">Equipment <button type="button" class="btn btn-sm btn-outline-danger" data-delete-option aria-label="Delete Equipment"><i class="fas fa-trash me-1" aria-hidden="true"></i>Delete</button></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -36865,6 +36873,23 @@
                     field.addEventListener("input", updateCounter);
                     updateCounter();
                 });
+        </script>
+        <script>
+            document.querySelectorAll("[data-delete-option]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    const row = button.closest("li");
+                    const list = row.parentElement;
+                    const card = row.closest(".option-card");
+                    row.remove();
+                    card.querySelector(".card-header .badge").textContent = list.children.length;
+                    if (!list.children.length) {
+                        const message = document.createElement("p");
+                        message.className = "text-muted text-center py-4 mb-0";
+                        message.textContent = "No items remaining.";
+                        list.replaceWith(message);
+                    }
+                });
+            });
         </script>
     </body>
 </html>

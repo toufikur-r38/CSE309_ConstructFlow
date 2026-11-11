@@ -5,6 +5,7 @@
     lang="en"
 >
     <head>
+        <script src="preview-role.js"></script>
         <meta charset="utf-8" />
         <meta
             content="width=device-width, initial-scale=1.0"
@@ -22031,7 +22032,7 @@
                         class="btn btn-outline-danger fw-bold shadow-sm"
                         data-detail-threshold=""
                         data-preview=""
-                        data-result-count="0"
+                        data-result-count="6"
                         href="#preview-action"
                         id="downloadPdfBtn"
                     >
@@ -22065,7 +22066,7 @@
                             name="project_filter"
                         >
                             <option value="">All Running Projects</option>
-                            <option value="all">All Projects</option>
+                            <option value="all">All Projects</option><option value='demo-1'>Demo - Uttara Residential Building</option><option value='demo-2'>Demo - Mirpur Road Improvement</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -22079,7 +22080,7 @@
                             id="field-1"
                             name="type_filter"
                         >
-                            <option value="">All Categories</option>
+                            <option value="">All Categories</option><option>Materials</option><option>Labor</option><option>Equipment</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -22131,14 +22132,7 @@
                     <span class="text-danger fw-semibold">Note:</span>
                     Negative amounts represent refunds, reimbursements, or accounting adjustments.
                 </div>
-                <div class="text-center py-5">
-                    <i
-                        class="fas fa-search text-muted mb-3"
-                        style="font-size: 3rem; opacity: 0.3"
-                    ></i>
-                    <h4 class="fw-bold text-muted">No Costs Found</h4>
-                    <p class="text-secondary mb-0">Try changing your filters.</p>
-                </div>
+                <table class='table table-hover align-middle mb-0' id='demoCostTable'><thead><tr><th>Date</th><th>Project</th><th>Category</th><th>Description</th><th>Quantity</th><th>Unit Rate</th><th>Total</th></tr></thead><tbody><tr data-project='demo-2' data-category='Materials' data-date='2026-11-10' data-amount='250000'><td>2026-11-10</td><td>Demo - Mirpur Road Improvement</td><td>Materials</td><td>Crushed stone</td><td>100 tons</td><td>BDT 2,500.00</td><td>BDT 250,000.00</td></tr><tr data-project='demo-2' data-category='Labor' data-date='2026-11-11' data-amount='30000'><td>2026-11-11</td><td>Demo - Mirpur Road Improvement</td><td>Labor</td><td>Road paving crew</td><td>30 days</td><td>BDT 1,000.00</td><td>BDT 30,000.00</td></tr><tr data-project='demo-2' data-category='Equipment' data-date='2026-11-12' data-amount='16000'><td>2026-11-12</td><td>Demo - Mirpur Road Improvement</td><td>Equipment</td><td>Road roller rental</td><td>2 days</td><td>BDT 8,000.00</td><td>BDT 16,000.00</td></tr><tr data-project='demo-1' data-category='Materials' data-date='2026-11-10' data-amount='110000'><td>2026-11-10</td><td>Demo - Uttara Residential Building</td><td>Materials</td><td>Cement</td><td>200 bags</td><td>BDT 550.00</td><td>BDT 110,000.00</td></tr><tr data-project='demo-1' data-category='Labor' data-date='2026-11-11' data-amount='24000'><td>2026-11-11</td><td>Demo - Uttara Residential Building</td><td>Labor</td><td>Foundation labor</td><td>20 days</td><td>BDT 1,200.00</td><td>BDT 24,000.00</td></tr><tr data-project='demo-1' data-category='Equipment' data-date='2026-11-12' data-amount='15000'><td>2026-11-12</td><td>Demo - Uttara Residential Building</td><td>Equipment</td><td>Concrete mixer rental</td><td>3 days</td><td>BDT 5,000.00</td><td>BDT 15,000.00</td></tr></tbody><tfoot><tr><th colspan='6'>Total expenditure</th><td id='demoCostTotal'>BDT 445,000.00</td></tr></tfoot></table><p id='demoNoCosts' class='text-center p-4' hidden>No costs match your filters.</p>
             </div>
             <div
                 aria-hidden="true"
@@ -39480,5 +39474,6 @@
                     updateCounter();
                 });
         </script>
+        <script src="demo-data.js"></script>
     </body>
 </html>

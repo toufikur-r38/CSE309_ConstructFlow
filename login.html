@@ -418,12 +418,24 @@
                 <div class="login-kicker">Secure Workspace</div>
                 <h2 class="login-heading">Sign in to continue</h2>
                 <p class="login-copy">
-                    Verify your credentials to access the ConstructFlow project tracker.
+                    Choose a demo role to explore the ConstructFlow project tracker.
                 </p>
                 <form
                     action="index.html"
                     id="loginForm"
                 >
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold" for="loginRole">Role</label>
+                        <select class="form-control" id="loginRole" name="role" aria-describedby="roleDescription" required
+                            style="width: 100%; border: 1px solid #dfe5ef; border-radius: 6px; background: white; padding: 12px;">
+                            <option value="admin">Admin</option>
+                            <option value="operator">Operator</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                        <p id="roleDescription" class="text-muted small" aria-live="polite" style="margin: 8px 0 0;">
+                            Full access to projects, costs, users, and audit logs.
+                        </p>
+                    </div>
                     <div class="mb-3">
                         <label
                             class="form-label text-muted small fw-bold"
@@ -509,7 +521,7 @@
                                     d="M14 2h6a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-6v-3h5V5h-5ZM8 5l7 7-7 7v-5H1v-4h7Z"
                                 ></path>
                             </svg>
-                            Verify &amp; Login
+                            Open Demo Workspace
                         </button>
                     </div>
                 </form>
@@ -544,9 +556,18 @@
                 passwordToggle.setAttribute("aria-pressed", String(show));
                 passwordToggle.querySelector("svg").style.opacity = show ? "0.5" : "1";
             });
+            const roleSelect = document.getElementById("loginRole");
+            const roleDescriptions = {
+                admin: "Full access to projects, costs, users, and audit logs.",
+                operator: "Add, edit, and remove projects and costs, and manage dropdown items.",
+                viewer: "Read-only access to project ledgers and financial reports."
+            };
+            roleSelect.addEventListener("change", function () {
+                document.getElementById("roleDescription").textContent = roleDescriptions[roleSelect.value];
+            });
             document.getElementById("loginForm").addEventListener("submit", function (event) {
                 event.preventDefault();
-                window.location.href = "index.html";
+                window.location.href = "index.html?role=" + encodeURIComponent(roleSelect.value);
             });
         </script>
     </body>
