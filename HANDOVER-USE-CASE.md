@@ -1,62 +1,62 @@
 # ConstructFlow workflow
 
-Open `index.html`, or serve this directory with `python -m http.server 8000 --bind 127.0.0.1` and open `http://127.0.0.1:8000`.
+ConstructFlow models a Bangladeshi real-estate developer: a land-sharing joint venture with a landowner, government approvals, flat sales on installments, construction, and flat-by-flat handover.
 
-## Start a project
+Open `index.html`, or serve this directory with `python -m http.server 8000 --bind 127.0.0.1` and open `http://127.0.0.1:8000`. Use **View as** in the header to switch roles.
 
-Select **Add project** on the dashboard. Enter the project, client, location, dates, and budget.
+## Stages
 
-- **Already awarded:** the agreed amount becomes the original contract budget. Start planning immediately.
-- **Tender stage:** review the estimate under Contract. Add BOQ items or enter the agreed amount, then award the contract. An unsuccessful tender can be closed without starting site work.
+Every project moves through five stages. A stage can only be completed when its checks on the Overview tab are done. The Managing Director then advances the project.
 
-The project appears in the dashboard and Projects register. Every subsequent record is linked to that project's ID.
+| Stage | What happens | Checks to move on |
+|---|---|---|
+| Land & JV | Record landowners (NID, mobile) and the JV agreement: mouza, dag/khatian, katha, share ratio, signing money, monthly rent, deed no. | Landowner, registered deed, share ratio |
+| Approvals & sales launch | Submit permits to RAJUK/CDA/KDA/RDA and record decisions. Define floors and flat types to generate flats. Allocate the landowner's flats and set the price list. Plan construction milestones. Sales open once the building plan is approved. | Land use clearance, building plan, fire NOC, environmental clearance; flats; landowner share within 5%; prices; milestones |
+| Construction | Daily site logs (quantity, labour, weather, blocker), RFIs, drawings, material requests → purchase orders → deliveries, expenses, budget revisions. | All milestones 100%, orders closed, RFIs answered, no pending revisions, occupancy certificate |
+| Flat handover | Hand over each sold and landowner flat with a possession letter. Fix defects and form the owners' association. | Every sold/landowner flat handed over, defects resolved, association formed |
+| Closed | Read-only final summary. | — |
 
-## Plan and execute
+## Sales and collections
 
-1. Under **Planning**, add work packages with planned quantities, units, and dates.
-2. Register drawings and their revisions. Approving a revision supersedes the previous approved revision. Document links open the supplied URL.
-3. Under **Site logs**, record completed quantities. Work package completion updates the project and dashboard. Overall progress is the average completion of its packages, independent of spending.
-4. Under **Procurement**, request materials, issue a purchase order, and acknowledge delivery. Cancelled requests and orders remain in the records.
-5. Record actual costs under **Expenses**, from a project, or from a received order. Every expense updates the same ledger, project spending, and dashboard totals.
+- **Booking:** choose an available developer flat and a customer. Price = size × rate + parking + utility charge − discount (max 25%).
+- **Payment plan:** booking money, then a down payment due in 30 days, then either monthly installments or construction-linked installments. Construction-linked installments are split across the remaining milestones and fall due 15 days after each one completes.
+- **Money receipts:** auto-numbered (MR-0001). Each payment is applied to the oldest unpaid installment first. A payment cannot exceed the balance, and cheque or bank payments need a reference.
+- **Agreement:** can only be signed after the booking money and down payment are received.
+- **Cancellation (MD only):** refund = paid − deduction %. The flat returns to stock, and the deduction counts as forfeited income.
+- **Handover blocks:** a buyer's flat needs a signed agreement, zero balance, and no open defects.
 
-## Handle changes when needed
+## Roles
 
-A site log may record a blocker. Raising an RFI retains its log, work package, and drawing reference. An administrator records the design response. If it changes scope or cost, submit a priced change linked to that RFI. A direct client instruction can produce a change without an RFI.
+| Role | Can do |
+|---|---|
+| Managing Director | Everything, including stage advances, permit decisions, drawing/revision approvals, cancellations, handovers |
+| Project Manager | Permits, milestones, site logs, RFIs, procurement, defects, budget revision requests |
+| Sales Executive | Customers, flats and price list, landowner allocation, bookings, agreements |
+| Accounts Officer | Money receipts, expenses |
+| Viewer | Read-only |
 
-Pending changes appear in Approvals and on the dashboard. Approval adjusts the revised budget once. Rejection does not affect the budget. Neither creates an expense.
+## Finance
 
-- Original budget = agreed contract amount at award.
-- Revised budget = original budget + approved changes.
-- Actual spending = non-voided recorded expenses.
-- Budget remaining = revised budget − actual spending.
-- Orders and deliveries do not count as expenses automatically.
+- Construction budget = original budget + approved revisions. Spending = non-voided expenses.
+- Land cost = signing money + monthly rent until the landowner's flats are handed over.
+- Projected margin = booked sales + unsold stock at list price + forfeited money − land cost − construction cost (the larger of budget and spending).
 
-## Complete and hand over
+## Example projects
 
-Complete every planned package, fulfil or cancel outstanding material requests and orders, answer RFIs, decide pending changes, resolve defects, and confirm the required documents. A project does not need an RFI, change, purchase order, or defect if none occurred.
+Built through the same business rules on first load:
 
-An administrator records client acceptance. The project becomes **Handed over** everywhere and closes to further activity. Its final summary shows dates, approved changes, approved budget, and recorded spending.
+- **Lake View Residence, Dhanmondi:** construction at slab 7, 8 flats sold, 1 booked, 1 cancelled with refund, 2 overdue buyers, an RFI, a pending budget revision, open purchase orders.
+- **Sea Breeze Tower, Chattogram (CDA):** handover in progress. Flat 6A is blocked by an unpaid balance and 5B by an open defect.
+- **Shapla Heights, Mirpur:** closed, with the full history.
+- **Green Haven, Bashundhara:** building plan and fire NOC pending, so sales are blocked. The landowner allocation and price list are still to do.
+- **Purbachal Green Valley:** land stage, with no JV agreement yet.
 
 ## Code and storage
 
-- `app-store.js`: shared records, calculations, and business rules.
-- `app.js`: common navigation, views, and form handling.
-- `app.css`: shared responsive styling.
+- `app-store.js`: records, calculations, business rules, and sample data. No UI code.
+- `app.js`: navigation, pages, and form handling.
+- `app.css`: responsive styling, dark mode, and print styles for reports.
 - HTML files: small entry pages loading the same application.
-- `app-store.test.cjs` and `app-ui.test.cjs`: business-rule and cross-page integration checks. Run each with Node from this directory.
+- `app-store.test.cjs`, `app-ui.test.cjs`: business-rule and page integration checks. Run each with `node` from this directory.
 
-Existing project bookmarks and the six initial expense records are retained. The old isolated workspace simulation is no longer used.
-
-## Example records
-
-Five additional example projects populate the application on first load and are added once to existing installations without replacing user-entered projects:
-
-- **Banani Office Extension:** tender estimate and BOQ ready for award.
-- **Dhanmondi Apartment Renovation:** work progress, drawing revisions, site blockers, answered and open RFIs, approved/pending/rejected changes, requests, orders, expenses, and a voided invoice.
-- **Chattogram Warehouse Repairs:** completed work with one remaining defect and an outstanding handover document. Resolve the defect and confirm the manual to enable sign-off.
-- **Sylhet Community Centre:** completed handover with client acceptance and final spending.
-- **Gazipur Boundary Wall:** unsuccessful tender retained in the project register.
-
-Team records and activity history are included. Example drawing links open a local reference SVG, clearly marked as unsuitable for construction. Changes made to the examples persist like other project records; refreshing does not reset them.
-
-Records persist in this browser on this device under `constructflow.records.v2`. Direct file navigation stays on `index.html` to avoid per-file storage isolation. Settings includes JSON export; Expenses includes CSV export. Role views control local actions but are not authenticated accounts. Secure multi-user access across devices requires a server and authentication service.
+Records persist in this browser under `constructflow.records.v3`. Data from the earlier contractor version (`v2`) is not migrated. Roles are views, not authenticated accounts. Multi-user access needs the planned backend.

@@ -1,188 +1,188 @@
 /* Run from this directory: node app-store.test.cjs */
 const assert = require('node:assert/strict');
-const {createStore, STORAGE_KEY} = require('./app-store.js');
+const {createStore, STORAGE_KEY, addDays, dhakaDay} = require('./app-store.js');
 
 function memoryStorage() {
   const values = new Map();
-  return {
-    getItem: key => values.get(key) || null,
-    setItem: (key, value) => values.set(key, value)
-  };
+  return {getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value)};
 }
 
 const storage = memoryStorage();
 const admin = createStore(storage);
-const newProject = (name, stage = 'awarded') => admin.addProject({
-  name, stage, client: 'Client Ltd.', location: 'Dhaka', sector: 'Commercial',
-  start: '2026-11-01', end: '2027-04-30', budget: 1000000
-});
-const current = project => admin.project(project.id);
-const last = items => items[items.length - 1];
+const day = offset => addDays(dhakaDay(), offset);
+const current = id => admin.project(id);
+const unit = (id, label) => current(id).units.find(item => item.label === label);
 
-assert.equal(admin.summary(admin.project('demo-1')).spending, 149000);
-assert.equal(admin.summary(admin.project('demo-2')).spending, 296000);
+// Sample projects cover every stage and obey the same rules as user records.
+const samples = admin.snapshot();
+assert.deepEqual(samples.projects.map(project => project.status), ['Construction', 'Handover', 'Closed', 'Approval', 'Land']);
+const lake = current('sample-lakeview');
+assert.equal(lake.units.length, 18);
+assert.equal(lake.units.filter(item => item.owner === 'Landowner').length, 7);
+assert.ok(admin.landShare(lake).withinTolerance);
+assert.equal(admin.finance(lake).overdueSales, 2);
+assert.ok(samples.sales.some(sale => sale.projectId === lake.id && sale.status === 'Cancelled' && sale.refund.deductionPct === 10));
+assert.ok(samples.receipts.every((receipt, index) => receipt.no === 'MR-' + String(index + 1).padStart(4, '0')));
+assert.throws(() => admin.bookUnit('sample-greenhaven', {}), /building plan is approved/);
+assert.throws(() => admin.handoverUnit('sample-seabreeze', unit('sample-seabreeze', '6A').id, {date: day(0), receivedBy: 'Buyer', letterNo: 'X'}), /still owes/);
+assert.throws(() => admin.handoverUnit('sample-seabreeze', unit('sample-seabreeze', '5B').id, {date: day(0), receivedBy: 'Buyer', letterNo: 'X'}), /open defects/);
+assert.throws(() => admin.addPunch('sample-shapla', {description: 'Late'}), /closed/);
+assert.equal(JSON.stringify(createStore(storage).snapshot()), JSON.stringify(admin.snapshot()), 'Reloading must keep the same records.');
 
-// Example projects cover each screen with linked, consistent records.
-const examples = admin.snapshot();
-assert.equal(examples.projects.filter(item => item.id.startsWith('sample-')).length, 5);
-assert.ok(examples.audit.length > 0);
-assert.ok(examples.users.some(user => user.role === 'operator'));
-assert.ok(examples.users.some(user => user.role === 'viewer'));
-const renovation = admin.project('sample-dhanmondi');
-assert.equal(admin.summary(renovation).budget, 1845000);
-assert.equal(admin.summary(renovation).spending, 77500);
-assert.equal(admin.summary(renovation).pending, 1);
-assert.ok(renovation.rfis.some(rfi => !rfi.response));
-assert.equal(admin.summary(admin.project('sample-sylhet')).progress, 100);
-assert.ok(admin.handoverChecks(admin.project('sample-sylhet')).every(check => check.done));
-assert.ok(!admin.handoverChecks(admin.project('sample-chattogram')).every(check => check.done));
-for (const sample of examples.projects.filter(item => item.id.startsWith('sample-'))) {
-  for (const entry of sample.logs) assert.ok(sample.packages.some(item => item.id === entry.packageId));
-  for (const rfi of sample.rfis) assert.ok(sample.logs.some(entry => entry.id === rfi.logId));
-  for (const order of sample.orders) {
-    const request = sample.requests.find(item => item.id === order.requestId);
-    assert.ok(request);
-    if (order.receivedAt) assert.ok(request.at <= order.receivedAt);
-  }
-  for (const cost of examples.costs.filter(item => item.projectId === sample.id && item.orderId)) {
-    assert.ok(sample.orders.some(order => order.id === cost.orderId));
-  }
-}
+// Land stage: a project cannot skip the JV agreement.
+const project = admin.addProject({name: 'Test Tower', location: 'Road 3, Banani, Dhaka', authority: 'RAJUK', start: day(-200), end: day(400), costBudget: 40000000});
+const pid = project.id;
+assert.equal(project.status, 'Land');
+assert.throws(() => admin.advance(pid), /JV agreement|joint-venture/i);
+assert.throws(() => admin.recordJv(pid, {}), /at least one landowner/);
+assert.throws(() => admin.addLandowner(pid, {name: 'Owner', nid: '1234567890', phone: '12345'}), /mobile number/);
+assert.throws(() => admin.addLandowner(pid, {name: 'Owner', nid: '123', phone: '01711000000'}), /NID/);
+admin.addLandowner(pid, {name: 'Md. Owner', nid: '1234567890', phone: '+880 1711-000000'});
+assert.equal(current(pid).land.owners[0].phone, '01711000000');
+admin.recordJv(pid, {mouza: 'Banani', dagNo: 'RS 1', khatianNo: '2', areaKatha: 5, developerShare: 50, signingMoney: 5000000, monthlyRent: 40000, agreementDate: day(-200), deedNo: 'JV-1/2026'});
+admin.advance(pid);
+assert.equal(current(pid).status, 'Approval');
+assert.throws(() => admin.recordJv(pid, {}), /not available at the Approval stage/);
 
-// Existing installations receive examples once, without replacing user records.
-const oldStorage = memoryStorage();
-const legacy = JSON.parse(JSON.stringify(examples));
-delete legacy.sampleDataVersion;
-legacy.projects = legacy.projects.filter(item => !item.id.startsWith('sample-'));
-legacy.projects[0].name = 'My existing project';
-legacy.costs = legacy.costs.filter(item => !item.id.startsWith('sample-'));
-legacy.audit = [];
-legacy.users = legacy.users.filter(item => !item.id.startsWith('sample-'));
-oldStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
-const upgraded = createStore(oldStorage);
-assert.equal(upgraded.project('demo-1').name, 'My existing project');
-assert.equal(upgraded.summary(upgraded.project('demo-1')).spending, 149000);
-const migrated = JSON.stringify(upgraded.snapshot());
-assert.equal(JSON.stringify(createStore(oldStorage).snapshot()), migrated, 'Reloading must not duplicate or reset examples.');
-upgraded.decideChange('sample-dhanmondi', 'dhan-change-2', 'Approved');
-assert.equal(createStore(oldStorage).project('sample-dhanmondi').changes[1].status, 'Approved');
+// Approval stage: permits, flats, landowner share, pricing, and milestones.
+assert.throws(() => admin.advance(pid), /building plan approval approved/);
+const permits = Object.fromEntries(['Land use clearance', 'Building plan approval', 'Fire service NOC', 'Environmental clearance'].map(type => [type, admin.addPermit(pid, {type, refNo: 'REF-' + type.length, submittedAt: day(-190), fee: 10000}).id]));
+assert.throws(() => admin.addPermit(pid, {type: 'Fire service NOC', refNo: 'DUP', submittedAt: day(-190)}), /already submitted/);
+assert.throws(() => admin.decidePermit(pid, permits['Fire service NOC'], {decision: 'Approved', date: day(-195)}), /before submission/);
+admin.decidePermit(pid, permits['Fire service NOC'], {decision: 'Rejected', date: day(-185)});
+admin.addPermit(pid, {type: 'Fire service NOC', refNo: 'REF-RESUBMIT', submittedAt: day(-184)});
+for (const permit of current(pid).permits.filter(item => item.status === 'Submitted')) admin.decidePermit(pid, permit.id, {decision: 'Approved', date: day(-180)});
 
-// A new project is a separate record, visible after opening another page/store.
-const project = newProject('North Tower');
-const second = newProject('South Tower');
-assert.equal(createStore(storage).project(project.id).name, 'North Tower');
-assert.equal(current(project).packages.length, 0);
-assert.equal(admin.summary(current(project)).spending, 0);
-assert.throws(() => admin.signOff(project.id, 'Client'), /handover checks/);
+admin.defineBuilding(pid, {storeys: 4, basements: 0, parkingSlots: 2, types: [{code: 'a', sizeSft: 1000, beds: 3}, {code: 'B', sizeSft: 800, beds: 2}, {code: '', sizeSft: '', beds: ''}]});
+assert.deepEqual(current(pid).units.map(item => item.label), ['1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B']);
+assert.equal(admin.landShare(current(pid)).entitledSft, 3600);
+const ids = labels => labels.map(label => unit(pid, label).id);
+assert.throws(() => admin.allocateLandowner(pid, ids(['1A', '1B', '2A', '2B', '3A'])), /exceeds the landowner's agreed share/);
+admin.allocateLandowner(pid, ids(['1A', '1B', '2A', '2B']));
+assert.ok(admin.landShare(current(pid)).withinTolerance);
+admin.setPricing(pid, {ratePerSft: 10000, parkingPrice: 500000, utilityCharge: 200000});
+const structure = admin.addPackage(pid, {name: 'Structure', quantity: 4, unit: 'slabs', start: day(-150), end: day(-20)}).id;
+const finishing = admin.addPackage(pid, {name: 'Finishing', quantity: 100, unit: '%', start: day(-20), end: day(300)}).id;
+assert.throws(() => admin.addPackage(pid, {name: 'Too late', quantity: 1, unit: 'lot', start: day(0), end: day(900)}), /within the project dates/);
 
-admin.addPackage(project.id, {name: 'Foundation', quantity: 100, unit: 'm³', start: '2026-11-01', end: '2026-12-01'});
-const pkg = current(project).packages[0];
-admin.addDrawing(project.id, {packageId: pkg.id, reference: 'F-01', revision: 'A', title: 'Foundation', url: ''});
-const revisionA = current(project).drawings[0];
-admin.approveDrawing(project.id, revisionA.id);
-admin.addDrawing(project.id, {packageId: pkg.id, reference: 'F-01', revision: 'B', title: 'Foundation update', url: 'https://example.com/foundation.pdf'});
-const revisionB = current(project).drawings[1];
-admin.approveDrawing(project.id, revisionB.id);
-assert.equal(current(project).drawings[0].superseded, true);
-assert.equal(current(project).drawings.filter(item => item.approved).length, 1);
-assert.throws(() => admin.addLog(project.id, {packageId: pkg.id, quantity: 10, date: '2026-11-15', notes: 'Work', drawingId: revisionA.id}), /approved drawing/);
+// Sales open after building plan approval; landowner flats cannot be sold.
+const buyer = admin.addCustomer({name: 'Rahim Uddin', phone: '01811000000', nid: '1987000000', address: 'Dhaka'});
+assert.throws(() => admin.addCustomer({name: 'Copy', phone: '01811000000', nid: '1987000001', address: 'Dhaka'}), /already exists/);
+const other = admin.addCustomer({name: 'Karima Begum', phone: '01911000000', nid: '1987000002', address: 'Dhaka'});
+assert.throws(() => admin.bookUnit(pid, {unitId: unit(pid, '1A').id, customerId: buyer.id, date: day(-170), bookingMoney: 100000, planType: 'monthly', installments: 2, firstDue: day(-140)}), /Landowner flats/);
+const milestoneSale = admin.bookUnit(pid, {unitId: unit(pid, '3A').id, customerId: buyer.id, date: day(-170), parking: 1, bookingMoney: 200000, downPayment: 1000000, planType: 'milestone'});
+assert.equal(milestoneSale.price, 1000 * 10000 + 500000 + 200000);
+assert.equal(milestoneSale.plan.reduce((total, item) => total + item.amount, 0), milestoneSale.price, 'The plan must add up to the price.');
+assert.deepEqual(milestoneSale.plan.map(item => item.kind), ['booking', 'down', 'milestone', 'milestone']);
+assert.throws(() => admin.bookUnit(pid, {unitId: unit(pid, '3A').id, customerId: other.id, date: day(-170), bookingMoney: 1, planType: 'milestone'}), /not available/);
+assert.throws(() => admin.bookUnit(pid, {unitId: unit(pid, '3B').id, customerId: other.id, date: day(-170), parking: 2, bookingMoney: 1, planType: 'milestone'}), /parking/);
+const monthlySale = admin.bookUnit(pid, {unitId: unit(pid, '3B').id, customerId: other.id, date: day(-160), parking: 0, discount: 100000, bookingMoney: 100000, downPayment: 0, planType: 'monthly', installments: 3, firstDue: day(-130)});
+assert.equal(monthlySale.price, 800 * 10000 + 200000 - 100000);
+assert.equal(monthlySale.plan.length, 4);
+assert.equal(unit(pid, '3B').status, 'Booked');
 
-admin.addLog(project.id, {packageId: pkg.id, quantity: 30, date: '2026-11-15', notes: 'Excavation', blocker: 'Existing pipe', drawingId: revisionB.id});
-assert.equal(admin.summary(current(project)).progress, 30);
-assert.equal(admin.summary(current(second)).progress, 0);
-const log = current(project).logs[0];
-admin.raiseRfi(project.id, log.id);
-const rfi = current(project).rfis[0];
-assert.equal(rfi.logId, log.id);
-assert.equal(rfi.packageId, pkg.id);
-assert.equal(rfi.drawingReference, 'F-01 · Rev B');
-assert.equal(rfi.question, 'Existing pipe');
-assert.throws(() => admin.raiseRfi(project.id, log.id), /already exists/);
-assert.throws(() => admin.addChange(project.id, {title: 'Diversion', reason: 'Pipe', amount: 75000, rfiId: rfi.id}), /Answer the RFI/);
-admin.respondRfi(project.id, rfi.id, 'Divert the pipe around the footing.');
-admin.addChange(project.id, {title: 'Pipe diversion', reason: 'Design response', amount: 75000, rfiId: rfi.id});
-const change = current(project).changes[0];
-assert.equal(admin.summary(current(project)).budget, 1000000);
-admin.decideChange(project.id, change.id, 'Approved');
-assert.throws(() => admin.decideChange(project.id, change.id, 'Approved'), /already been decided/);
-assert.equal(admin.summary(current(project)).budget, 1075000);
-assert.equal(admin.summary(current(project)).spending, 0);
+assert.throws(() => admin.signAgreement(pid, milestoneSale.id, {date: day(-160)}), /booking money and down payment/);
+assert.throws(() => admin.addReceipt({saleId: milestoneSale.id, date: day(-170), amount: milestoneSale.price + 1, method: 'Cash'}), /exceeds the remaining balance/);
+assert.throws(() => admin.addReceipt({saleId: milestoneSale.id, date: day(-170), amount: 200000, method: 'Cheque'}), /reference is required/);
+const first = admin.addReceipt({saleId: milestoneSale.id, date: day(-170), amount: 700000, method: 'Cash'});
+const second = admin.addReceipt({saleId: milestoneSale.id, date: day(-150), amount: 500000, method: 'Cheque', ref: 'Cheque 1001'});
+assert.equal(second.no.slice(3) - first.no.slice(3), 1);
+const paidUpfront = admin.statement(milestoneSale.id);
+assert.deepEqual(paidUpfront.rows.slice(0, 2).map(row => row.status), ['Paid', 'Paid'], 'Receipts apply to the oldest installment first.');
+assert.equal(paidUpfront.rows[2].status, 'Not yet due', 'Milestone installments wait for construction.');
+admin.signAgreement(pid, milestoneSale.id, {date: day(-150)});
+assert.equal(unit(pid, '3A').status, 'Sold');
 
-// Requests, orders, and delivery update procurement; actual spending needs an expense.
-admin.requestMaterials(project.id, {packageId: pkg.id, item: 'Cement', quantity: 10, unit: 'bags'});
-const request = current(project).requests[0];
-admin.createOrder(project.id, {requestId: request.id, supplier: 'Supplier Ltd.', rate: 550, expected: '2026-11-16'});
-const order = current(project).orders[0];
-assert.throws(() => admin.createOrder(project.id, {requestId: request.id, supplier: 'Duplicate', rate: 550, expected: '2026-11-16'}), /already processed/);
-assert.equal(admin.summary(current(project)).spending, 0);
-admin.receiveOrder(project.id, order.id);
-assert.equal(current(project).requests[0].status, 'Fulfilled');
-assert.equal(admin.summary(current(project)).spending, 0);
-admin.saveCost({projectId: project.id, date: '2026-11-16', category: 'Materials', description: 'Cement invoice', quantity: 10, rate: 550, orderId: order.id});
-const cost = last(admin.snapshot().costs);
-assert.equal(admin.summary(current(project)).spending, 5500);
-assert.equal(admin.summary(current(second)).spending, 0);
-admin.saveCost({projectId: project.id, date: '2026-11-16', category: 'Materials', description: 'Corrected invoice', quantity: 10, rate: 600, orderId: order.id}, cost.id);
-assert.equal(admin.summary(current(project)).spending, 6000);
-admin.voidCost(cost.id);
-assert.equal(admin.summary(current(project)).spending, 0);
-assert.ok(admin.snapshot().costs.find(item => item.id === cost.id).voidedAt);
+// Cancelling a booking refunds the payment less the deduction and frees the flat.
+const cancelled = admin.bookUnit(pid, {unitId: unit(pid, '4A').id, customerId: other.id, date: day(-150), parking: 0, bookingMoney: 300000, planType: 'monthly', installments: 1, firstDue: day(-120)});
+admin.addReceipt({saleId: cancelled.id, date: day(-150), amount: 300000, method: 'Bank transfer', ref: 'TRX 9'});
+assert.throws(() => createStore(storage, 'sales').cancelSale(pid, cancelled.id, {deductionPct: 10, date: day(-140), reason: 'x'}), /role cannot/);
+admin.cancelSale(pid, cancelled.id, {deductionPct: 10, date: day(-140), reason: 'Buyer withdrew'});
+assert.equal(admin.snapshot().sales.find(sale => sale.id === cancelled.id).refund.amount, 270000);
+assert.equal(unit(pid, '4A').status, 'Available');
+assert.throws(() => admin.addReceipt({saleId: cancelled.id, date: day(-139), amount: 1, method: 'Cash'}), /cancelled sale/);
+assert.equal(admin.finance(current(pid)).forfeited, 30000);
 
-admin.addChange(project.id, {title: 'Saving', reason: 'Reduced scope', amount: -10000});
-admin.decideChange(project.id, last(current(project).changes).id, 'Rejected');
-assert.equal(admin.summary(current(project)).budget, 1075000);
+// Construction: milestone completion makes construction-linked installments fall due.
+assert.throws(() => admin.addLog(pid, {packageId: structure, quantity: 1, date: day(-100), notes: 'Too early'}), /Approval stage/);
+admin.advance(pid);
+assert.equal(current(pid).status, 'Construction');
+assert.throws(() => admin.addLog(pid, {packageId: structure, quantity: 5, date: day(-60), notes: 'Too much'}), /exceeds/);
+admin.addLog(pid, {packageId: structure, quantity: 4, date: day(-60), notes: 'Roof slab cast', labour: 50, weather: 'Sunny'});
+const dueNow = admin.statement(milestoneSale.id).rows[2];
+assert.equal(dueNow.due, day(-45));
+assert.equal(dueNow.status, 'Overdue');
+assert.equal(dueNow.daysLate, 45);
+assert.equal(admin.statement(monthlySale.id).overdue, admin.statement(monthlySale.id).rows.reduce((total, row) => total + row.amount, 0), 'Every unpaid monthly installment is overdue.');
+assert.throws(() => admin.advance(pid), /milestones complete/);
+admin.addLog(pid, {packageId: finishing, quantity: 100, date: day(-5), notes: 'Finishing complete'});
+const steel = admin.requestMaterials(pid, {packageId: structure, item: 'Rod 500W', quantity: 2, unit: 'ton'});
+const order = admin.createOrder(pid, {requestId: steel.id, supplier: 'Steel House', rate: 95000, expected: day(-50)});
+assert.throws(() => admin.advance(pid), /purchase orders closed/);
+admin.receiveOrder(pid, order.id);
+admin.saveCost({projectId: pid, date: day(-49), category: 'Rod & steel', description: 'Rod bill', quantity: 2, rate: 95000, orderId: order.id});
+assert.equal(admin.summary(current(pid)).spending, 190000);
+admin.addChange(pid, {title: 'Extra pile', reason: 'Soil report', amount: 300000});
+assert.throws(() => admin.advance(pid), /budget revisions/);
+admin.decideChange(pid, current(pid).changes[0].id, 'Approved');
+assert.equal(admin.summary(current(pid)).budget, 40300000);
+assert.throws(() => admin.advance(pid), /occupancy certificate/);
+admin.recordOccupancy(pid, {certificateNo: 'OC-1', date: day(-2)});
+admin.addPunch(pid, {description: 'Loose door handle', unitId: unit(pid, '3A').id});
+admin.advance(pid);
+assert.equal(current(pid).status, 'Handover');
 
-// Completion follows actual work and open records, rather than a forced change scenario.
-admin.addLog(project.id, {packageId: pkg.id, quantity: 70, date: '2026-11-17', notes: 'Foundation complete'});
-admin.addPunch(project.id, 'Touch up paint');
-for (const key of ['drawings', 'certificates', 'manual']) admin.setDocument(project.id, key, true);
-assert.throws(() => admin.signOff(project.id, 'Client'), /handover checks/);
-admin.resolvePunch(project.id, current(project).punch[0].id);
-admin.signOff(project.id, 'Client Representative');
-assert.equal(current(project).status, 'Handed over');
-assert.throws(() => admin.saveCost({projectId: project.id, date: '2026-11-18', category: 'Labor', description: 'Late cost', quantity: 1, rate: 10}), /active, awarded/);
-assert.throws(() => admin.addPackage(project.id, {name: 'Late work'}), /active, awarded/);
+// Handover: full payment, signed agreement, and fixed defects are required.
+const handover = label => admin.handoverUnit(pid, unit(pid, label).id, {date: day(0), receivedBy: 'Receiver', letterNo: 'PL-' + label});
+assert.throws(() => handover('3A'), /still owes/);
+admin.addReceipt({saleId: milestoneSale.id, date: day(0), amount: admin.statement(milestoneSale.id).balance, method: 'Pay order', ref: 'PO 77'});
+assert.throws(() => handover('3A'), /open defects/);
+admin.resolvePunch(pid, current(pid).punch[0].id);
+handover('3A');
+assert.throws(() => handover('3A'), /already been handed over/);
+assert.throws(() => handover('4A'), /Unsold flats/);
+assert.throws(() => handover('3B'), /Sign the sale agreement/);
+admin.addReceipt({saleId: monthlySale.id, date: day(0), amount: admin.statement(monthlySale.id).balance, method: 'Cash'});
+admin.signAgreement(pid, monthlySale.id, {date: day(0)});
+['3B', '1A', '1B', '2A', '2B'].forEach(handover);
+assert.throws(() => admin.advance(pid), /association/);
+admin.formAssociation(pid, {name: 'Test Tower Owners', president: 'Rahim Uddin', date: day(0)});
+admin.advance(pid);
+assert.equal(current(pid).status, 'Closed');
+assert.ok(current(pid).closedAt);
+assert.throws(() => admin.saveCost({projectId: pid, date: day(0), category: 'Other', description: 'Late', quantity: 1, rate: 1}), /closed/);
+assert.equal(admin.finance(current(pid)).receivable, 0);
 
-const simple = newProject('Simple project');
-admin.addPackage(simple.id, {name: 'All works', quantity: 1, unit: 'lot', start: '2026-11-01', end: '2027-04-30'});
-admin.addLog(simple.id, {packageId: current(simple).packages[0].id, quantity: 1, date: '2026-11-20', notes: 'Completed'});
-for (const key of ['drawings', 'certificates', 'manual']) admin.setDocument(simple.id, key, true);
-admin.signOff(simple.id, 'Client');
-assert.equal(current(simple).status, 'Handed over', 'No invented RFI, change, order, or defect should be necessary.');
-
-const tender = newProject('Tender project', 'tender');
-assert.equal(current(tender).originalBudget, 0);
-assert.throws(() => admin.addPackage(tender.id, {}), /active, awarded/);
-admin.addBoq(tender.id, {name: 'Work', quantity: 10, unit: 'lot', rate: 1000});
-admin.award(tender.id, 9999999);
-assert.equal(current(tender).originalBudget, 10000, 'The awarded BOQ defines the original budget.');
-assert.throws(() => admin.award(tender.id, 10000), /Only a tender/);
-assert.throws(() => admin.addBoq(tender.id, {}), /locked/);
-const lost = newProject('Unsuccessful tender', 'tender');
-admin.loseTender(lost.id);
-assert.equal(current(lost).status, 'Lost');
-
-const viewer = createStore(storage, 'viewer');
-const operator = createStore(storage, 'operator');
-assert.throws(() => viewer.addProject({name: 'Blocked'}), /role cannot/);
-assert.throws(() => operator.award(second.id, 1), /role cannot/);
-assert.throws(() => operator.signOff(second.id, 'Client'), /role cannot/);
+// Roles: each person can only do their own job.
+const roles = Object.fromEntries(['pm', 'sales', 'accounts', 'viewer'].map(role => [role, createStore(storage, role)]));
+assert.throws(() => roles.viewer.addCustomer({name: 'x'}), /role cannot/);
+assert.throws(() => roles.sales.addReceipt({saleId: samples.sales[0].id}), /role cannot/);
+assert.throws(() => roles.accounts.bookUnit('sample-lakeview', {}), /role cannot/);
+assert.throws(() => roles.pm.decidePermit('sample-greenhaven', 'x', {}), /role cannot/);
+assert.throws(() => roles.pm.advance('sample-lakeview'), /role cannot/);
+assert.throws(() => roles.accounts.addLog('sample-lakeview', {}), /role cannot/);
+assert.ok(roles.sales.can('sales') && !roles.sales.can('receipts'));
+roles.accounts.addReceipt({saleId: samples.sales.find(sale => sale.status === 'Booked' && sale.projectId === 'sample-lakeview').id, date: day(0), amount: 1000, method: 'Cash'});
+roles.pm.addPermit('sample-greenhaven', {type: 'WASA water connection', refNo: 'WASA-1', submittedAt: day(0)});
 
 // A stale page must not overwrite records created by another page.
 const stale = createStore(storage);
 admin.addOption('categories', 'Consultancy');
-stale.addOption('sectors', 'Industrial');
-const reloaded = createStore(storage);
-assert.ok(reloaded.snapshot().settings.categories.includes('Consultancy'));
-assert.ok(reloaded.snapshot().settings.sectors.includes('Industrial'));
-assert.equal(reloaded.project(project.id).status, 'Handed over');
-assert.ok(reloaded.snapshot().audit.some(event => event.projectId === project.id && event.action === 'Project handed over'));
+stale.addOption('units', 'gallon');
+const reloaded = createStore(storage).snapshot();
+assert.ok(reloaded.settings.categories.includes('Consultancy'));
+assert.ok(reloaded.settings.units.includes('gallon'));
+assert.ok(reloaded.audit.some(event => event.projectId === pid && event.action === 'Stage advanced'));
+assert.ok(reloaded.audit.some(event => event.projectId === pid && event.action === 'Project created'));
 
-// Failed writes keep existing data and totals intact.
+// Failed writes keep existing data intact; unsupported data is not overwritten.
 const before = storage.getItem(STORAGE_KEY);
-const failingStorage = {getItem: key => storage.getItem(key), setItem: () => {throw new Error('Quota exceeded');}};
-const failing = createStore(failingStorage);
-assert.throws(() => failing.addOption('sectors', 'Unsaved sector'), /Quota/);
+const failing = createStore({getItem: key => storage.getItem(key), setItem: () => {throw new Error('Quota exceeded');}});
+assert.throws(() => failing.addOption('units', 'Unsaved'), /Quota/);
 assert.equal(storage.getItem(STORAGE_KEY), before);
-assert.ok(!failing.snapshot().settings.sectors.includes('Unsaved sector'));
-console.log('PASS: shared records, independent projects, complete workflows, contracts, progress, RFIs, budgets, procurement, expenses, handover, roles, refresh, concurrent writes, and failed persistence.');
+assert.ok(!failing.snapshot().settings.units.includes('Unsaved'));
+const legacy = memoryStorage();
+legacy.setItem(STORAGE_KEY, JSON.stringify({version: 2, projects: []}));
+assert.throws(() => createStore(legacy), /supported format/);
+
+console.log('PASS: samples, land → approvals → construction → handover → closed gates, permits, flats, landowner share, pricing, bookings, payment plans, receipts, cancellations, milestone dues, procurement, budgets, handover blocks, roles, concurrent writes, and failed persistence.');
