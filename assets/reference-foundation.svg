@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="720" viewBox="0 0 1000 720">
+  <rect width="1000" height="720" fill="#f8fafc"/>
+  <rect x="30" y="30" width="940" height="660" fill="white" stroke="#1a2a6c" stroke-width="2"/>
+  <g font-family="Segoe UI,Arial,sans-serif" fill="#233047">
+    <text x="65" y="80" font-size="25" font-weight="700">Foundation and service layout</text>
+    <text x="65" y="110" font-size="15" fill="#64748b">Dhanmondi Apartment Renovation · STR-DR01 · Reference drawing</text>
+    <g fill="none" stroke="#1a2a6c" stroke-width="3">
+      <path d="M170 210H800V520H170ZM380 210V520M590 210V520M170 365H800"/>
+      <path stroke="#94a3b8" stroke-dasharray="8 7" stroke-width="1" d="M170 160V560M380 160V560M590 160V560M800 160V560M120 210H850M120 365H850M120 520H850"/>
+      <g fill="#e8eefb"><rect x="150" y="190" width="40" height="40"/><rect x="360" y="190" width="40" height="40"/><rect x="570" y="190" width="40" height="40"/><rect x="780" y="190" width="40" height="40"/><rect x="150" y="500" width="40" height="40"/><rect x="360" y="500" width="40" height="40"/><rect x="570" y="500" width="40" height="40"/><rect x="780" y="500" width="40" height="40"/></g>
+      <path stroke="#e63946" stroke-width="5" d="M115 330H280V410H485"/>
+    </g>
+    <g font-size="17" text-anchor="middle"><text x="170" y="155">1</text><text x="380" y="155">2</text><text x="590" y="155">3</text><text x="800" y="155">4</text><text x="105" y="216">A</text><text x="105" y="371">B</text><text x="105" y="526">C</text></g>
+    <text x="285" y="450" font-size="15" fill="#b32836">Proposed protected service route</text>
+    <text x="65" y="615" font-size="14">Blue: structural grid and footing positions · Red: service diversion</text>
+    <text x="65" y="650" font-size="13" fill="#64748b">Sample drawing for interface review. Not for construction. Dimensions omitted.</text>
+  </g>
+</svg>
