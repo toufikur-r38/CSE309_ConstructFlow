@@ -1,0 +1,23 @@
+{
+  "name": "constructflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Real-estate development management, from land to handover. Express REST API with Supabase.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node tests/store.test.cjs && node tests/ui.test.cjs && node --test tests/server.test.cjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.2",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "pg": "^8.23.1"
+  }
+}

@@ -12,10 +12,10 @@
     team: 'admin/team.html', settings: 'admin/settings.html', activity: 'admin/activity.html', profile: 'admin/profile.html'
   };
 
+  // The app is always served over http by the Express server (npm start), so each page is its own file.
   const params = new URLSearchParams(location.search);
-  const fileMode = location.protocol === 'file:';
   const root = document.body.dataset.root || '';
-  const page = (fileMode && params.get('page')) || document.body.dataset.page || 'dashboard';
+  const page = document.body.dataset.page || 'dashboard';
 
   let savedRole;
   try { savedRole = sessionStorage.getItem('constructflow.role'); } catch (_) { /* URL preserves role when session storage is disabled. */ }
@@ -23,20 +23,12 @@
   const role = ConstructFlow.roles.includes(requestedRole) ? requestedRole : 'viewer';
   try { sessionStorage.setItem('constructflow.role', role); } catch (_) { /* Optional preference. */ }
 
-  // File URLs can isolate storage per HTML file. Keep direct-file navigation on
-  // the root index.html so every module uses the same records, just as it does on HTTP.
-  const redirecting = fileMode && root !== '';
-  if (redirecting) {
-    params.set('page', page);
-    location.replace(root + 'index.html?' + params + location.hash);
-  }
-
   // Modules read the store at call time; app.js creates it once the page has loaded.
   let current = null;
   const store = new Proxy({}, {get: (_, key) => current[key]});
 
   globalThis.CF = {
-    ctx: {C: ConstructFlow, routes, params, page, role, fileMode, root, redirecting, projectId: params.get('project') || '', store, setStore: value => {current = value;}},
+    ctx: {C: ConstructFlow, routes, params, page, role, root, projectId: params.get('project') || '', store, setStore: value => {current = value;}},
     ui: {}, pages: {}, tabs: {}, forms: {}, actions: {}, afterRender: {}
   };
 })();

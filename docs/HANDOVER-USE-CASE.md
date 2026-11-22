@@ -2,7 +2,15 @@
 
 ConstructFlow models a Bangladeshi real-estate developer: a land-sharing joint venture with a landowner, government approvals, flat sales on installments, construction, and flat-by-flat handover.
 
-Open `index.html`, or serve this directory with `python -m http.server 8000 --bind 127.0.0.1` and open `http://127.0.0.1:8000`. Use **View as** in the header to switch roles.
+Run it with the Express server (Node 20 or later):
+
+```
+npm install
+copy .env.example .env      (then fill in DATABASE_URL from Supabase)
+npm start                   (or npm run dev to restart on every change)
+```
+
+Open `http://localhost:3000`. `http://localhost:3000/api/health` shows whether the database is reachable. Opening `index.html` straight from disk is no longer supported. Use **View as** in the header to switch roles until sign-in arrives (see [BACKEND-PLAN.md](BACKEND-PLAN.md)).
 
 ## Stages
 
@@ -68,12 +76,14 @@ reports/       printable statements and P&L
 admin/         team, settings, activity log, account
 core/          store.js (records and business rules, no UI) · context.js (routes, page, role)
                ui.js (shared helpers) · app.js (header, rendering, listeners) · app.css
-tests/         store.test.cjs, ui.test.cjs
-docs/          this guide and the high-fidelity design PDF
+error.html     standalone error page (core/error.js): works without login or API
+server/        Express: app.js (headers, API, pages, errors) · config.js (.env) · db.js (Supabase Postgres)
+tests/         store.test.cjs, ui.test.cjs, server.test.cjs
+docs/          this guide, BACKEND-PLAN.md, and the high-fidelity design PDF
 ```
 
 - Each page names its module in `<body data-page="…">`. All pages load the same scripts, so any page can render any screen.
 - A module registers its screens on `CF.pages`, its project tabs on `CF.tabs`, its forms on `CF.forms`, and its buttons on `CF.actions`.
-- Run the checks from the project root: `node tests/store.test.cjs` and `node tests/ui.test.cjs`.
+- Run the checks from the project root: `npm test`.
 
 Records persist in this browser under `constructflow.records.v3`. Data from the earlier contractor version (`v2`) is not migrated. Roles are views, not authenticated accounts. Multi-user access needs the planned backend.

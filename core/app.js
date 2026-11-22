@@ -2,25 +2,28 @@
    Each module registers its own pages, tabs, form handlers, and actions on CF. */
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
-  if (CF.ctx.redirecting) return;
 
   const {C, page, role, root, store, STOP, url, notify, navigate, escape, icon, params} = CF.ui;
+  // Pages each role sees in the menu (the MD sees everything). This only hides links; the server enforces access.
   const navAllowed = {
     pm: ['dashboard', 'projects', 'procurement', 'reports'],
     sales: ['dashboard', 'projects', 'sales', 'collections', 'customers', 'reports', 'buyer'],
     accounts: ['dashboard', 'projects', 'collections', 'expenses', 'procurement', 'reports'],
     viewer: ['dashboard', 'projects', 'sales', 'collections', 'customers', 'approvals', 'reports', 'procurement', 'expenses', 'buyer']
   };
+  // Actions that ask "Are you sure?" first: [question, action to run after confirming].
   const confirmations = {
     'void-cost': ['Void this expense? It remains in the activity history.', 'confirm-void'],
     'cancel-order': ['Cancel this purchase order without receiving it?', 'confirm-cancel-order'],
     advance: ['Move this project to the next stage? Records from the current stage will be locked.', 'confirm-advance']
   };
   const content = document.getElementById('content');
+  // Light or dark theme, remembered on this device.
   let theme = 'light';
   try { theme = localStorage.getItem('constructflow.theme') === 'dark' ? 'dark' : 'light'; } catch (_) { /* Use the light theme when preferences are unavailable. */ }
   document.documentElement.dataset.theme = theme;
 
+  // shell(): draws the header: logo, menu links for this role, theme switch, and account badge.
   function shell() {
     const visible = key => role === 'admin' || (navAllowed[role] || []).includes(key);
     const navigation = [['dashboard', 'Dashboard'], ['projects', 'Projects'], ['sales', 'Sales'], ['collections', 'Collections'],
@@ -40,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('role-select').value = role;
   }
 
+  // render(): draws the current page from the records, then runs that page's after-render hook.
   function render() {
     content.innerHTML = (CF.pages[page] || CF.pages.dashboard)(store.snapshot());
     CF.afterRender[page]?.();
@@ -53,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     notify(typeof result === 'string' ? result : fallback);
   }
 
+  // Every form submit: filter forms change the address; other forms go to their CF.forms handler.
   document.addEventListener('submit', event => {
     const target = event.target.closest('form[data-form]');
     if (!target) return;
@@ -75,12 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // confirmAction(): opens the confirmation dialog and remembers which action to run on Confirm.
   function confirmAction(title, action, recordId, pid) {
     document.getElementById('confirmation-title').textContent = title;
     Object.assign(document.getElementById('confirmation-action').dataset, {action, id: recordId, project: pid});
     document.getElementById('confirmation').showModal();
   }
 
+  // Every button click with data-action: theme, print, dialogs, confirmations, or a CF.actions handler.
   document.addEventListener('click', event => {
     const target = event.target.closest('button[data-action]');
     if (!target || target.disabled) return;
@@ -106,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Dropdown changes: the role switcher, and the drawing list that follows the chosen milestone.
   document.addEventListener('change', event => {
     const target = event.target;
     if (target.id === 'role-select') {
@@ -122,13 +130,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Typing in the expense form updates its live total.
   document.addEventListener('input', event => {
     if (event.target.closest?.('[data-form="cost"]')) CF.afterRender['expense-form']();
   });
+  // Re-render when the #tab changes, and reload when another browser tab changed the records.
   let ready = false;
   window.addEventListener('hashchange', () => {if (ready) render();});
   window.addEventListener('storage', event => {if (event.key === C.STORAGE_KEY) location.reload();});
 
+  // Start-up: load the records, draw the header and page. If loading fails, explain it instead.
   try {
     CF.ctx.setStore(C.createStore(localStorage, role));
     shell();

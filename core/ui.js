@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const {C, params, page, role, fileMode, root, projectId, store, routes} = CF.ctx;
+  const {C, params, page, role, root, projectId, store, routes} = CF.ctx;
   const STOP = Symbol('stop');
   const navigate = href => {location.href = href;};
   const assetUrl = value => /^https?:\/\//i.test(value) ? value : root + value;
@@ -10,8 +10,7 @@
   function url(route, query = {}, tab = '') {
     if (!routes[route]) throw new Error('Unknown page: ' + route);
     const values = new URLSearchParams({role, ...query});
-    if (fileMode) values.set('page', route);
-    return root + (fileMode ? 'index.html' : routes[route]) + '?' + values + (tab ? '#' + tab : '');
+    return root + routes[route] + '?' + values + (tab ? '#' + tab : '');
   }
 
   function notify(text, error = false) {
@@ -322,5 +321,5 @@
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 
-  Object.assign(CF.ui, {C, params, page, role, fileMode, root, projectId, store, routes, STOP, navigate, assetUrl, url, notify, can, actionPermission, formPermission, tabs, tabLabels, stageLabels, SALE_STAGES, SITE_STAGES, extraPermits, escape, money, short, day, today, sft, badgeTone, badge, disabled, isOpen, projectUrl, saleUrl, link, button, input, textarea, select, form, table, card, stack, columns, definitionList, callout, heading, metric, icon, dashboardStat, actionTile, customerOf, unitOf, projectOf, activeSales, saleForUnit, soldCount, saleTitle, nextStep, stepper, milestoneState, projectRows, activityRows, overdueRows, dueSoonRows, unavailable, saleRows, milestoneTable, changeTable, readiness, scheduleTable, receiptTable, projectFilter, download});
+  Object.assign(CF.ui, {C, params, page, role, root, projectId, store, routes, STOP, navigate, assetUrl, url, notify, can, actionPermission, formPermission, tabs, tabLabels, stageLabels, SALE_STAGES, SITE_STAGES, extraPermits, escape, money, short, day, today, sft, badgeTone, badge, disabled, isOpen, projectUrl, saleUrl, link, button, input, textarea, select, form, table, card, stack, columns, definitionList, callout, heading, metric, icon, dashboardStat, actionTile, customerOf, unitOf, projectOf, activeSales, saleForUnit, soldCount, saleTitle, nextStep, stepper, milestoneState, projectRows, activityRows, overdueRows, dueSoonRows, unavailable, saleRows, milestoneTable, changeTable, readiness, scheduleTable, receiptTable, projectFilter, download});
 })();

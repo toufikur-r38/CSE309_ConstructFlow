@@ -14,12 +14,12 @@ function memoryStorage() {
   return {getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value)};
 }
 
-function boot(route, storage = memoryStorage(), protocol = 'http:') {
+function boot(route, storage = memoryStorage()) {
   const listeners = {};
   const elements = new Map();
   const html = read(route.split(/[?#]/)[0]);
   const body = {dataset: {page: html.match(/data-page="([^"]*)"/)[1], root: html.match(/data-root="([^"]*)"/)[1]}};
-  let address = new URL(protocol === 'file:' ? 'file:///D:/ConstructFlow/' + route : 'http://localhost/' + route);
+  let address = new URL('http://localhost/' + route);
   const location = {
     get href() {return address.href;}, set href(value) {address = new URL(value, address.href);},
     get pathname() {return address.pathname;}, get search() {return address.search;},
@@ -66,9 +66,12 @@ function boot(route, storage = memoryStorage(), protocol = 'http:') {
   };
 }
 
-// Every page is a module page: it names a known route and loads the same scripts as index.html.
+// Every app page is a module page: it names a known route and loads the same scripts as index.html.
+// Standalone pages (the error page) load no app scripts and are checked in tests/server.test.cjs.
+const STANDALONE = ['error.html'];
 const routes = boot('index.html').routes();
-const htmlFiles = fs.readdirSync(ROOT, {recursive: true}).map(file => file.split(path.sep).join('/')).filter(file => file.endsWith('.html'));
+const htmlFiles = fs.readdirSync(ROOT, {recursive: true}).map(file => file.split(path.sep).join('/'))
+  .filter(file => file.endsWith('.html') && !/^(node_modules|\.git)\//.test(file) && !STANDALONE.includes(file));
 assert.deepEqual(htmlFiles.slice().sort(), Object.values(routes).sort(), 'Every route has exactly one HTML page');
 for (const [route, file] of Object.entries(routes)) {
   const html = read(file);
@@ -176,11 +179,9 @@ assert.match(boot('collections/index.html?project=' + createdId, storage).html()
 assert.match(boot('customers/buyer.html?customer=' + buyerId, storage).html(), /Welcome, New Buyer/);
 assert.match(boot('index.html', storage).html(), /Connected Tower/);
 
-// Local-file links keep all sections on index.html, sharing the same storage.
-const fileApp = boot('index.html', storage, 'file:');
-assert.match(fileApp.header(), /index\.html\?role=admin&amp;page=projects|index\.html\?role=admin&page=projects/);
-assert.match(boot('index.html?page=sales&sale=' + saleId, storage, 'file:').html(), /New Buyer/);
-assert.match(boot('projects/workspace.html?project=' + createdId, storage, 'file:').href(), /^file:\/\/\/D:\/ConstructFlow\/index\.html\?project=.*page=project/);
+// Links point straight at each module's own page.
+assert.match(boot('index.html', storage).header(), /projects\/index\.html\?role=admin/);
+assert.match(boot('sales/index.html?sale=' + saleId, storage).html(), /New Buyer/);
 
 // Roles see the same pages but can only change their own records.
 const viewer = boot('projects/workspace.html?project=' + createdId + '&role=viewer#costs', storage);
@@ -227,4 +228,4 @@ assert.match(navFor('accounts'), />Collections<[\s\S]*Expenses/);
 assert.doesNotMatch(navFor('viewer'), /Team|Activity log|Settings/);
 assert.match(boot('projects/workspace.html?project=sample-lakeview&role=sales', storage).html(), /Viewing as Sales Executive/);
 
-console.log('PASS: every page and project tab renders cleanly; project → JV → permits → flats → booking → receipt → agreement flows through the pages; file-mode navigation and role restrictions pass.');
+console.log('PASS: every page and project tab renders cleanly; project → JV → permits → flats → booking → receipt → agreement flows through the pages; page links and role restrictions pass.');

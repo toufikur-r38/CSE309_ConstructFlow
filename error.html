@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Unexpected problem - ConstructFlow</title>
+  <link rel="stylesheet" href="/core/app.css">
+  <script src="/core/error.js" defer></script>
+</head>
+<!-- Standalone page: no login, no API, no records. It works even when the server or sign-in is broken.
+     The problem comes from the address (error.html?code=404&from=/sales/index.html) or from the server (data-code). -->
+<body class="error-page" data-code="">
+  <main class="error-main">
+    <a class="brand" href="/"><img src="/assets/constructflow-logo.png" alt="ConstructFlow — Project Management" width="181" height="48"></a>
+    <section class="card error-card" aria-labelledby="error-title">
+      <p class="error-code" id="error-code"></p>
+      <h1 id="error-title">Unexpected problem</h1>
+      <p class="error-reason" id="error-reason">Something stopped this page from working.</p>
+      <h2>What to do</h2>
+      <ol id="error-steps">
+        <li>Reload the page.</li>
+        <li>If it continues, tell the Administrator what you were doing.</li>
+      </ol>
+      <p class="status-line" id="error-countdown" role="status" aria-live="polite"></p>
+      <div class="actions" id="error-actions">
+        <a class="button" href="/">Dashboard</a>
+      </div>
+    </section>
+  </main>
+  <footer>ConstructFlow · Real-estate development, from land to handover</footer>
+</body>
+</html>
