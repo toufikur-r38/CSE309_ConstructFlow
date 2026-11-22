@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reports - ConstructFlow</title>
+  <link rel="stylesheet" href="../core/app.css">
+  <script src="../core/store.js" defer></script>
+  <script src="../core/context.js" defer></script>
+  <script src="../core/ui.js" defer></script>
+  <script src="../dashboard/dashboard.js" defer></script>
+  <script src="../projects/projects.js" defer></script>
+  <script src="../projects/workspace.js" defer></script>
+  <script src="../sales/sales.js" defer></script>
+  <script src="../customers/customers.js" defer></script>
+  <script src="../collections/collections.js" defer></script>
+  <script src="../procurement/procurement.js" defer></script>
+  <script src="../expenses/expenses.js" defer></script>
+  <script src="../approvals/approvals.js" defer></script>
+  <script src="../reports/reports.js" defer></script>
+  <script src="../admin/admin.js" defer></script>
+  <script src="../core/app.js" defer></script>
+</head>
+<body data-page="reports" data-root="../">
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header id="header" class="site-header"></header>
+  <main class="app-main">
+    <div id="message" role="status" aria-live="polite" tabindex="-1"></div>
+    <div id="content"><p>Loading project records…</p></div>
+    <noscript>Enable JavaScript to manage project records.</noscript>
+  </main>
+  <footer>ConstructFlow · Real-estate development, from land to handover</footer>
+  <dialog id="confirmation" aria-labelledby="confirmation-title">
+    <h2 id="confirmation-title">Confirm action</h2>
+    <div class="actions">
+      <button id="confirmation-action" class="button danger" type="button">Confirm</button>
+      <button class="button secondary" type="button" data-action="close-dialog">Cancel</button>
+    </div>
+  </dialog>
+</body>
+</html>
