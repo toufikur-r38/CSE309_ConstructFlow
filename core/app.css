@@ -70,8 +70,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .user-badge { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border: 1px solid #ffffff29; border-radius: 50px; background: #ffffff14; font-size: 13px; }
 .user-avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #ffc1072e; color: #ffc107; }
 .user-avatar .icon { width: 17px; height: 17px; }
-.role-label { display: flex; align-items: center; gap: 8px; color: #e1e6f3; }
-.role-label select { width: auto; margin: 0; padding: 6px; }
+.user-name small { display: block; color: #c9d1e6; font-size: 11px; }
+.sign-out { padding: 8px 14px; border: 1px solid #ffffff2e; border-radius: 50px; background: #ffffff14; color: white; font: inherit; font-weight: 600; cursor: pointer; }
+.sign-out:hover { background: #ffffff29; }
 details { position: relative; }
 details > div { position: absolute; top: 100%; right: 0; min-width: 170px; padding: 9px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; z-index: 10; box-shadow: var(--shadow); }
 .site-header details a { display: block; padding: 10px; color: var(--ink); }
@@ -296,7 +297,6 @@ a.unit:hover { text-decoration: none; filter: brightness(.97); }
 .site-header nav { flex: 1 1 auto; min-width: 0; }
 .account { flex: 0 1 auto; min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
 .user-badge { max-width: 210px; white-space: nowrap; }
-.role-label select { max-width: 190px; text-overflow: ellipsis; }
 details > div { max-width: calc(100vw - 24px); }
 
 @media (max-width: 1280px) {
@@ -316,8 +316,6 @@ details > div { max-width: calc(100vw - 24px); }
   .account { grid-column: 1; grid-row: 2; justify-self: stretch; justify-content: space-between; gap: 10px; }
   .site-header nav { grid-row: 3; gap: 4px; font-size: 13px; }
   .user-badge { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
-  .role-label { flex: 1 1 100%; justify-content: space-between; }
-  .role-label select { flex: 1; max-width: none; }
 }
 
 /* Standalone error page (error.html) */

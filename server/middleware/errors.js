@@ -18,6 +18,14 @@ const API_MESSAGES = {
   503: 'The service is temporarily unavailable. Try again in a minute.'
 };
 
+// httpError(): an error with a status; publicMessage is safe to show the user (it reaches the browser).
+function httpError(status, publicMessage = '') {
+  const error = new Error(publicMessage || API_MESSAGES[status] || 'Error');
+  error.status = status;
+  if (publicMessage) error.publicMessage = publicMessage;
+  return error;
+}
+
 const isApi = req => req.path === '/api' || req.path.startsWith('/api/');
 
 let template = null;
@@ -51,4 +59,4 @@ function handleErrors(error, req, res, next) {
   sendError(req, res, status === 503 ? 503 : 500);
 }
 
-module.exports = {notFound, handleErrors, sendErrorPage, isApi};
+module.exports = {notFound, handleErrors, sendErrorPage, isApi, httpError};

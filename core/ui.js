@@ -2,15 +2,15 @@
 (function () {
   'use strict';
 
-  const {C, params, page, role, root, projectId, store, routes} = CF.ctx;
+  const {C, params, page, user, root, projectId, store, routes} = CF.ctx;
   const STOP = Symbol('stop');
   const navigate = href => {location.href = href;};
   const assetUrl = value => /^https?:\/\//i.test(value) ? value : root + value;
 
   function url(route, query = {}, tab = '') {
     if (!routes[route]) throw new Error('Unknown page: ' + route);
-    const values = new URLSearchParams({role, ...query});
-    return root + routes[route] + '?' + values + (tab ? '#' + tab : '');
+    const values = new URLSearchParams(query).toString();
+    return root + routes[route] + (values ? '?' + values : '') + (tab ? '#' + tab : '');
   }
 
   function notify(text, error = false) {
@@ -20,12 +20,41 @@
     message.focus();
   }
 
-  const can = permission => C.permissions[permission].includes(role);
+  // can(): does the signed-in user's role hold this permission? Only hides buttons; the server enforces it.
+  /* api(): calls the server with the session cookie and returns the JSON answer.
+     Rule errors (400, 403 …) are thrown with the server's message so the page can show it.
+     A 401 means the session ended: the error page explains it and offers Sign in. */
+  async function api(method, path, body) {
+    const options = {method, credentials: 'same-origin', headers: {accept: 'application/json'}};
+    if (method !== 'GET') {
+      options.headers['content-type'] = 'application/json';
+      options.body = JSON.stringify(body ?? {});
+    }
+    let response;
+    try {
+      response = await fetch(path, options);
+    } catch (_) {
+      throw new Error("Can't reach ConstructFlow. Check your internet connection and try again.");
+    }
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 401 && path !== '/api/auth/me') {
+      navigate('/error.html?code=401&from=' + encodeURIComponent(location.pathname + location.search + location.hash));
+      return new Promise(() => {}); // Never settles: the page is being left.
+    }
+    if (!response.ok) {
+      const error = new Error(data.error || 'Something went wrong on our side. Try again in a minute.');
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  }
+
+  const can = permission => C.permissions[permission].includes(user.role);
 
   const actionPermission = {
     advance: 'project', 'approve-drawing': 'decide', rfi: 'site', 'approve-change': 'decide', 'reject-change': 'decide',
     'cancel-request': 'procurement', 'receive-order': 'procurement', 'cancel-order': 'decide', 'resolve-punch': 'site',
-    'void-cost': 'decide', backup: 'team'
+    'void-cost': 'decide', backup: 'settings'
   };
 
   const formPermission = {
@@ -33,7 +62,8 @@
     building: 'units', allocate: 'units', pricing: 'units', customer: 'sales', booking: 'sales', receipt: 'receipts', agreement: 'sales',
     'cancel-sale': 'decide', package: 'site', drawing: 'site', 'site-log': 'site', 'rfi-response': 'decide', change: 'site',
     'material-request': 'procurement', 'purchase-order': 'procurement', cost: 'costs', punch: 'site', occupancy: 'decide',
-    'handover-unit': 'decide', association: 'decide', user: 'team', option: 'team'
+    'handover-unit': 'decide', association: 'decide', option: 'settings',
+    'new-user': 'accounts', 'edit-user': 'accounts', password: 'accounts', assign: 'assign'
   };
 
   const tabs = ['overview', 'land', 'permits', 'units', 'sales', 'construction', 'procurement', 'costs', 'handover'];
@@ -65,9 +95,9 @@
   const sft = value => Number(value || 0).toLocaleString('en-IN') + ' sft';
 
   const badgeTone = {
-    success: ['Approved', 'Received', 'Fulfilled', 'Handed over', 'Resolved', 'Paid', 'Agreement signed', 'Closed', 'Ready', 'On track', 'Complete'],
+    success: ['Approved', 'Received', 'Fulfilled', 'Handed over', 'Resolved', 'Paid', 'Agreement signed', 'Closed', 'Ready', 'On track', 'Complete', 'Active'],
     warning: ['Pending', 'Submitted', 'Requested', 'Ordered', 'Booked', 'Due', 'Land', 'Approval', 'Open', 'In progress'],
-    danger: ['Overdue', 'Rejected', 'Cancelled', 'Delayed', 'Blocked'],
+    danger: ['Overdue', 'Rejected', 'Cancelled', 'Delayed', 'Blocked', 'Deactivated'],
     info: ['Construction', 'Handover', 'Landowner', 'Upcoming', 'Not yet due']
   };
 
@@ -226,7 +256,7 @@
   function activityRows(events, records) {
     return events.map(event => {
       const project = projectOf(records, event.projectId);
-      return [day(event.at), escape(event.action), project ? `<a href="${projectUrl(project.id)}">${escape(project.name)}</a>` : 'Organisation', escape(event.description), escape(C.roleNames[event.role] || event.role)];
+      return [day(event.at), escape(event.action), project ? `<a href="${projectUrl(project.id)}">${escape(project.name)}</a>` : 'Organisation', escape(event.description), escape((event.by ? event.by + ' · ' : '') + (C.roleNames[event.role] || event.role))];
     });
   }
 
@@ -248,7 +278,7 @@
   }
 
   function unavailable(reason) {
-    return heading('Record unavailable', reason, link('View projects', url('projects')));
+    return heading('Record unavailable', reason, user.role === 'administrator' ? link('Dashboard', url('dashboard')) : link('View projects', url('projects')));
   }
 
   function saleRows(records, sales) {
@@ -321,5 +351,5 @@
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 
-  Object.assign(CF.ui, {C, params, page, role, root, projectId, store, routes, STOP, navigate, assetUrl, url, notify, can, actionPermission, formPermission, tabs, tabLabels, stageLabels, SALE_STAGES, SITE_STAGES, extraPermits, escape, money, short, day, today, sft, badgeTone, badge, disabled, isOpen, projectUrl, saleUrl, link, button, input, textarea, select, form, table, card, stack, columns, definitionList, callout, heading, metric, icon, dashboardStat, actionTile, customerOf, unitOf, projectOf, activeSales, saleForUnit, soldCount, saleTitle, nextStep, stepper, milestoneState, projectRows, activityRows, overdueRows, dueSoonRows, unavailable, saleRows, milestoneTable, changeTable, readiness, scheduleTable, receiptTable, projectFilter, download});
+  Object.assign(CF.ui, {C, params, page, user, root, api, projectId, store, routes, STOP, navigate, assetUrl, url, notify, can, actionPermission, formPermission, tabs, tabLabels, stageLabels, SALE_STAGES, SITE_STAGES, extraPermits, escape, money, short, day, today, sft, badgeTone, badge, disabled, isOpen, projectUrl, saleUrl, link, button, input, textarea, select, form, table, card, stack, columns, definitionList, callout, heading, metric, icon, dashboardStat, actionTile, customerOf, unitOf, projectOf, activeSales, saleForUnit, soldCount, saleTitle, nextStep, stepper, milestoneState, projectRows, activityRows, overdueRows, dueSoonRows, unavailable, saleRows, milestoneTable, changeTable, readiness, scheduleTable, receiptTable, projectFilter, download});
 })();

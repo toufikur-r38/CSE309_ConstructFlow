@@ -8,7 +8,7 @@ function memoryStorage() {
 }
 
 const storage = memoryStorage();
-const admin = createStore(storage);
+const admin = createStore(storage, 'md');
 const day = offset => addDays(dhakaDay(), offset);
 const current = id => admin.project(id);
 const unit = (id, label) => current(id).units.find(item => item.label === label);
@@ -27,7 +27,7 @@ assert.throws(() => admin.bookUnit('sample-greenhaven', {}), /building plan is a
 assert.throws(() => admin.handoverUnit('sample-seabreeze', unit('sample-seabreeze', '6A').id, {date: day(0), receivedBy: 'Buyer', letterNo: 'X'}), /still owes/);
 assert.throws(() => admin.handoverUnit('sample-seabreeze', unit('sample-seabreeze', '5B').id, {date: day(0), receivedBy: 'Buyer', letterNo: 'X'}), /open defects/);
 assert.throws(() => admin.addPunch('sample-shapla', {description: 'Late'}), /closed/);
-assert.equal(JSON.stringify(createStore(storage).snapshot()), JSON.stringify(admin.snapshot()), 'Reloading must keep the same records.');
+assert.equal(JSON.stringify(createStore(storage, 'md').snapshot()), JSON.stringify(admin.snapshot()), 'Reloading must keep the same records.');
 
 // Land stage: a project cannot skip the JV agreement.
 const project = admin.addProject({name: 'Test Tower', location: 'Road 3, Banani, Dhaka', authority: 'RAJUK', start: day(-200), end: day(400), costBudget: 40000000});
@@ -165,19 +165,30 @@ assert.ok(roles.sales.can('sales') && !roles.sales.can('receipts'));
 roles.accounts.addReceipt({saleId: samples.sales.find(sale => sale.status === 'Booked' && sale.projectId === 'sample-lakeview').id, date: day(0), amount: 1000, method: 'Cash'});
 roles.pm.addPermit('sample-greenhaven', {type: 'WASA water connection', refNo: 'WASA-1', submittedAt: day(0)});
 
+// The Administrator runs the system only: settings yes, business records no. The MD cannot change settings.
+const administrator = createStore(storage, {id: 'u-1', name: 'Farhana Chowdhury', role: 'administrator'});
+assert.throws(() => administrator.addCustomer({name: 'x'}), /role cannot/);
+assert.throws(() => administrator.advance('sample-lakeview'), /role cannot/);
+assert.throws(() => admin.addOption('units', 'drum'), /role cannot/);
+assert.ok(administrator.can('accounts') && administrator.can('assign') && !administrator.can('decide'));
+assert.ok(admin.can('assign') && admin.can('activity') && !admin.can('accounts') && !admin.can('settings'));
+assert.equal(createStore(storage, 'admin').role, 'viewer', 'An unknown role gets read-only rights');
+assert.equal(createStore(storage).role, 'viewer', 'No role means read-only');
+
 // A stale page must not overwrite records created by another page.
-const stale = createStore(storage);
-admin.addOption('categories', 'Consultancy');
+const stale = createStore(storage, 'administrator');
+administrator.addOption('categories', 'Consultancy');
 stale.addOption('units', 'gallon');
-const reloaded = createStore(storage).snapshot();
+const reloaded = createStore(storage, 'md').snapshot();
 assert.ok(reloaded.settings.categories.includes('Consultancy'));
+assert.ok(reloaded.audit.some(item => item.action === 'Settings updated' && item.by === 'Farhana Chowdhury' && item.userId === 'u-1' && item.role === 'administrator'), 'The activity log records who acted');
 assert.ok(reloaded.settings.units.includes('gallon'));
 assert.ok(reloaded.audit.some(event => event.projectId === pid && event.action === 'Stage advanced'));
 assert.ok(reloaded.audit.some(event => event.projectId === pid && event.action === 'Project created'));
 
 // Failed writes keep existing data intact; unsupported data is not overwritten.
 const before = storage.getItem(STORAGE_KEY);
-const failing = createStore({getItem: key => storage.getItem(key), setItem: () => {throw new Error('Quota exceeded');}});
+const failing = createStore({getItem: key => storage.getItem(key), setItem: () => {throw new Error('Quota exceeded');}}, 'administrator');
 assert.throws(() => failing.addOption('units', 'Unsaved'), /Quota/);
 assert.equal(storage.getItem(STORAGE_KEY), before);
 assert.ok(!failing.snapshot().settings.units.includes('Unsaved'));

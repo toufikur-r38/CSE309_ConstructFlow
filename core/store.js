@@ -3,12 +3,17 @@
   'use strict';
 
   const STORAGE_KEY = 'constructflow.records.v3';
-  const roles = ['admin', 'pm', 'sales', 'accounts', 'viewer'];
-  const roleNames = {admin: 'Managing Director', pm: 'Project Manager', sales: 'Sales Executive', accounts: 'Accounts Officer', viewer: 'Viewer'};
+  // One role per user. The Administrator runs the system (accounts, settings) and does no business work.
+  const roles = ['administrator', 'md', 'pm', 'sales', 'accounts', 'viewer'];
+  const roleNames = {administrator: 'Administrator', md: 'Managing Director', pm: 'Project Manager', sales: 'Sales Executive', accounts: 'Accounts Officer', viewer: 'Viewer'};
+  // Roles that only see the projects they are assigned to. The Administrator and MD see every project.
+  const scopedRoles = ['pm', 'sales', 'accounts', 'viewer'];
   const permissions = {
-    project: ['admin'], decide: ['admin'], permit: ['admin', 'pm'], units: ['admin', 'sales'],
-    site: ['admin', 'pm'], procurement: ['admin', 'pm'], costs: ['admin', 'accounts'],
-    sales: ['admin', 'sales'], receipts: ['admin', 'accounts'], team: ['admin']
+    project: ['md'], decide: ['md'], permit: ['md', 'pm'], units: ['md', 'sales'],
+    site: ['md', 'pm'], procurement: ['md', 'pm'], costs: ['md', 'accounts'],
+    sales: ['md', 'sales'], receipts: ['md', 'accounts'],
+    // System permissions. "accounts" means user accounts, not the Accounts Officer role.
+    accounts: ['administrator'], assign: ['administrator', 'md'], settings: ['administrator'], activity: ['administrator', 'md']
   };
   const statuses = ['Land', 'Approval', 'Construction', 'Handover', 'Closed'];
   const authorities = ['RAJUK', 'CDA', 'KDA', 'RDA', 'Pourashava'];
@@ -122,8 +127,7 @@
       settings: {
         categories: ['Design & approvals', 'Rod & steel', 'Cement', 'Bricks', 'Sand & stone chips', 'Labour', 'Equipment', 'Utilities & services', 'Sales & marketing', 'Other'],
         units: ['ton', 'kg', 'bag', 'pcs', 'cft', 'sft', 'rft', 'lot']
-      },
-      users: [{id: 'user-admin', name: 'Managing Director', email: '', role: 'admin'}]
+      }
     };
   }
 
@@ -274,7 +278,7 @@
   const needsHandover = unit => unit.owner === 'Landowner' || unit.status !== 'Available';
 
   function validateRecords(records) {
-    if (records?.version !== 3 || !['projects', 'customers', 'sales', 'receipts', 'costs', 'audit', 'users'].every(key => Array.isArray(records[key])) || !records.settings) {
+    if (records?.version !== 3 || !['projects', 'customers', 'sales', 'receipts', 'costs', 'audit'].every(key => Array.isArray(records[key])) || !records.settings) {
       throw new Error('Saved records are not in the supported format.');
     }
     for (const project of records.projects) {
@@ -286,8 +290,12 @@
     return records;
   }
 
-  function createStore(storage, role = 'admin') {
-    if (!roles.includes(role)) role = 'viewer';
+  /* actor is the signed-in user {id, name, role}, or just a role name in tests and the sample builder.
+     An unknown role becomes the read-only Viewer, so a mistake never grants more rights. */
+  function createStore(storage, actor = 'viewer') {
+    const who = typeof actor === 'string' ? {id: '', name: '', role: actor} : {id: String(actor?.id || ''), name: String(actor?.name || ''), role: actor?.role};
+    if (!roles.includes(who.role)) who.role = 'viewer';
+    const role = who.role;
     let records;
     try {
       const saved = storage.getItem(STORAGE_KEY);
@@ -310,7 +318,7 @@
       if (project?.status === 'Closed') throw new Error('This project is closed. Records are read-only.');
       const result = update(next, project);
       const auditProject = projectId || (next.projects.includes(result) ? result.id : '');
-      next.audit.unshift({id: id('event'), at: timestamp(), action, projectId: auditProject, description: String(description || ''), role});
+      next.audit.unshift({id: id('event'), at: timestamp(), action, projectId: auditProject, description: String(description || ''), role, by: who.name, userId: who.id});
       storage.setItem(STORAGE_KEY, JSON.stringify(next));
       records = next;
       return clone(result ?? project ?? true);
@@ -794,23 +802,13 @@
         }, 'decide');
       },
 
-      saveUser(input, userId = '') {
-        return write('Team member updated', '', input.name, next => {
-          if (!roles.includes(input.role)) throw new Error('Select a valid role.');
-          const user = {name: text(input.name, 'Name'), email: text(input.email, 'Email', false), role: input.role};
-          if (user.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) throw new Error('Enter a valid email address.');
-          if (userId) Object.assign(find(next.users, userId, 'Team member'), user);
-          else next.users.push({id: id('user'), ...user});
-        }, 'team');
-      },
-
       addOption(kind, value) {
         return write('Settings updated', '', 'Option added', next => {
           if (!['categories', 'units'].includes(kind)) throw new Error('Unknown setting.');
           const option = text(value, 'Option');
           if (next.settings[kind].some(item => item.toLowerCase() === option.toLowerCase())) throw new Error('This option already exists.');
           next.settings[kind].push(option);
-        }, 'team');
+        }, 'settings');
       }
     };
   }
@@ -821,7 +819,7 @@
     const base = emptyRecords();
     base.sampleDataVersion = 1;
     const memory = new Map([[STORAGE_KEY, JSON.stringify(base)]]);
-    const s = createStore({getItem: key => memory.get(key) ?? null, setItem: (key, value) => memory.set(key, value)}, 'admin');
+    const s = createStore({getItem: key => memory.get(key) ?? null, setItem: (key, value) => memory.set(key, value)}, 'md');
     const today = dhakaDay();
     const day = offset => addDays(today, offset);
     const unitId = (pid, label) => s.project(pid).units.find(unit => unit.label === label).id;
@@ -1045,23 +1043,16 @@
       ['sample-lakeview', 'Site log recorded', 'Brickwork started on 1st–3rd floors; RFI raised for gas riser clash.', -5, 'pm'],
       ['sample-lakeview', 'Payment received', 'Installment received from Mehedi Hasan (Flat 7A).', -3, 'accounts'],
       ['sample-lakeview', 'Budget revision submitted', 'Gas riser relocation submitted for approval.', -2, 'pm'],
-      ['sample-seabreeze', 'Flat handed over', 'Flat 5A handed over to Mosharraf Karim.', -14, 'admin'],
+      ['sample-seabreeze', 'Flat handed over', 'Flat 5A handed over to Mosharraf Karim.', -14, 'md'],
       ['sample-seabreeze', 'Defect recorded', 'Bathroom seepage in Flat 5B.', -18, 'pm'],
       ['sample-greenhaven', 'Permit submitted', 'Building plan submitted to RAJUK.', -45, 'pm'],
-      ['sample-shapla', 'Stage advanced', 'Project closed after association formation.', -210, 'admin']
+      ['sample-shapla', 'Stage advanced', 'Project closed after association formation.', -210, 'md']
     ].map(([projectId, action, description, offset, role], index) => ({id: 'sample-event-' + index, projectId, action, description, role, at: at(offset)}));
-    records.users = [
-      {id: 'user-admin', name: 'Mahmud Rahman', email: 'md@example.com', role: 'admin'},
-      {id: 'sample-user-pm', name: 'Arif Hossain', email: 'arif@example.com', role: 'pm'},
-      {id: 'sample-user-sales', name: 'Sadia Islam', email: 'sadia@example.com', role: 'sales'},
-      {id: 'sample-user-accounts', name: 'Kamrul Hasan', email: 'kamrul@example.com', role: 'accounts'},
-      {id: 'sample-user-viewer', name: 'Nusrat Jahan', email: 'nusrat@example.com', role: 'viewer'}
-    ];
     return records;
   }
 
   const api = {
-    createStore, sampleRecords, STORAGE_KEY, total, round, roles, roleNames, permissions, statuses, authorities,
+    createStore, sampleRecords, STORAGE_KEY, total, round, roles, roleNames, scopedRoles, permissions, statuses, authorities,
     requiredPermits, paymentMethods, addDays, dhakaDay, SHARE_TOLERANCE, MILESTONE_GRACE_DAYS
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

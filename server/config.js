@@ -28,5 +28,9 @@ module.exports = Object.freeze({
   port,
   appOrigin,
   databaseUrl: required('DATABASE_URL'),
-  databaseCaFile: caFile ? path.resolve(ROOT, caFile) : ''
+  databaseCaFile: caFile ? path.resolve(ROOT, caFile) : '',
+  // Supabase Auth. The publishable key signs people in; the secret key manages accounts. Neither reaches the browser.
+  supabaseUrl: required('SUPABASE_URL').replace(/\/+$/, ''),
+  supabasePublishableKey: required('SUPABASE_PUBLISHABLE_KEY'),
+  supabaseSecretKey: required('SUPABASE_SECRET_KEY')
 });

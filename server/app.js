@@ -3,13 +3,17 @@
 const path = require('node:path');
 const express = require('express');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const config = require('./config');
 const db = require('./db');
 const {notFound, handleErrors} = require('./middleware/errors');
+const {sameOrigin} = require('./middleware/access');
+const {authRoutes} = require('./routes/auth');
+const {userRoutes} = require('./routes/users');
 
 // Only these folders and files are public. Server code, .env, db/, tests/, docs/ and
 // node_modules/ are never served, because express.static is pointed at each folder by name.
-const PUBLIC_FOLDERS = ['admin', 'approvals', 'assets', 'collections', 'core', 'customers', 'dashboard', 'expenses', 'procurement', 'projects', 'reports', 'sales'];
+const PUBLIC_FOLDERS = ['admin', 'approvals', 'assets', 'auth', 'collections', 'core', 'customers', 'dashboard', 'expenses', 'procurement', 'projects', 'reports', 'sales'];
 const PUBLIC_FILES = ['index.html', 'error.html'];
 
 function createApp() {
@@ -49,8 +53,12 @@ function createApp() {
     res.set('Cache-Control', 'no-store');
     next();
   });
+  // Writes from other sites, or not sent as JSON, are refused before anything else runs.
+  api.use(sameOrigin);
   // Reads JSON request bodies; anything over 100kb is refused with 413.
   api.use(express.json({limit: '100kb'}));
+  // Reads the session cookies (cf_access, cf_refresh).
+  api.use(cookieParser());
 
   // Is the server up, and can it reach the database?
   api.get('/health', async (req, res) => {
@@ -62,6 +70,9 @@ function createApp() {
       res.status(503).json({ok: false, database: 'unreachable'});
     }
   });
+
+  api.use('/auth', authRoutes());
+  api.use('/users', userRoutes());
 
   app.use('/api', api);
 

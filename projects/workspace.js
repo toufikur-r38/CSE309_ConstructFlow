@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const {C, params, page, role, projectId, store, assetUrl, url, can, tabs, tabLabels, stageLabels, SALE_STAGES, SITE_STAGES, extraPermits, escape, money, short, day, today, sft, badge, disabled, isOpen, projectUrl, saleUrl, link, button, input, textarea, select, form, table, card, stack, columns, definitionList, callout, heading, metric, customerOf, unitOf, projectOf, saleForUnit, soldCount, stepper, unavailable, milestoneTable, changeTable, readiness} = CF.ui;
+  const {C, params, page, user, projectId, store, assetUrl, url, can, tabs, tabLabels, stageLabels, SALE_STAGES, SITE_STAGES, extraPermits, escape, money, short, day, today, sft, badge, disabled, isOpen, projectUrl, saleUrl, link, button, input, textarea, select, form, table, card, stack, columns, definitionList, callout, heading, metric, customerOf, unitOf, projectOf, saleForUnit, soldCount, stepper, unavailable, milestoneTable, changeTable, readiness} = CF.ui;
 
   function workspace(project, records) {
     if (!project) return CF.pages.projects(records, 'Select a project');
@@ -13,7 +13,7 @@
     const actions = link('Reports', url('reports', {project: project.id})) +
       (can('project') && isOpen(project) ? link('Edit details', url('project-form', {project: project.id})) : '');
     const header = heading(project.name, `${project.location} · ${project.authority}`, actions) +
-      `<section class="project-header"><div class="project-heading"><div>${badge(project.status)} <span class="muted">${day(project.start)} – ${day(project.end)}</span> <span class="muted">· Viewing as ${escape(C.roleNames[role])}: actions for other roles are hidden.</span></div><a href="${url('projects')}">All projects</a></div>
+      `<section class="project-header"><div class="project-heading"><div>${badge(project.status)} <span class="muted">${day(project.start)} – ${day(project.end)}</span> <span class="muted">· Signed in as ${escape(C.roleNames[user.role])}: actions for other roles are hidden.</span></div><a href="${url('projects')}">All projects</a></div>
       ${stepper(project)}
       <div class="summary-grid">${metric('Construction', summary.progress + '%')}${metric('Flats sold', `${soldCount(project)} / ${summary.developerUnits}`)}${metric('Collected', short(finance.collected))}${metric('Spent / budget', `${short(summary.spending)} / ${short(summary.budget)}`)}</div></section>
       <nav class="tabs" aria-label="Project sections">${tabs.map(key => `<a href="${projectUrl(project.id, key)}"${tab === key ? ' aria-current="page"' : ''}>${tabLabels[key]}</a>`).join('')}</nav>`;

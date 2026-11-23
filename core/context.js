@@ -1,4 +1,4 @@
-/* Page context shared by every script: the route table, current page, and role. */
+/* Page context shared by every script: the route table, current page, and signed-in user. */
 (function () {
   'use strict';
 
@@ -17,18 +17,16 @@
   const root = document.body.dataset.root || '';
   const page = document.body.dataset.page || 'dashboard';
 
-  let savedRole;
-  try { savedRole = sessionStorage.getItem('constructflow.role'); } catch (_) { /* URL preserves role when session storage is disabled. */ }
-  const requestedRole = params.get('role') || savedRole || 'admin';
-  const role = ConstructFlow.roles.includes(requestedRole) ? requestedRole : 'viewer';
-  try { sessionStorage.setItem('constructflow.role', role); } catch (_) { /* Optional preference. */ }
+  // The signed-in user. app.js fills it from the server (GET /api/auth/me) before the first render,
+  // so modules read user.role at render time. It only decides what to show; the server checks every action.
+  const user = {id: '', name: '', email: '', role: 'viewer', projects: []};
 
   // Modules read the store at call time; app.js creates it once the page has loaded.
   let current = null;
   const store = new Proxy({}, {get: (_, key) => current[key]});
 
   globalThis.CF = {
-    ctx: {C: ConstructFlow, routes, params, page, role, root, projectId: params.get('project') || '', store, setStore: value => {current = value;}},
+    ctx: {C: ConstructFlow, routes, params, page, user, root, projectId: params.get('project') || '', store, setStore: value => {current = value;}},
     ui: {}, pages: {}, tabs: {}, forms: {}, actions: {}, afterRender: {}
   };
 })();

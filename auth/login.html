@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Sign in - ConstructFlow</title>
+  <link rel="stylesheet" href="/core/app.css">
+  <script src="/core/error.js" defer></script>
+  <script src="/auth/login.js" defer></script>
+</head>
+<!-- Standalone page: loads no records. There is no sign-up; the Administrator creates every account. -->
+<body class="error-page">
+  <main class="error-main">
+    <a class="brand" href="/"><img src="/assets/constructflow-logo.png" alt="ConstructFlow — Project Management" width="181" height="48"></a>
+    <section class="card error-card login-card" aria-labelledby="login-title">
+      <h1 id="login-title">Sign in to ConstructFlow</h1>
+      <p>Use the email and password the Administrator gave you.</p>
+      <div id="login-message" class="message error" role="alert" tabindex="-1" hidden></div>
+      <form id="login-form">
+        <label class="field">Email<input name="email" type="email" autocomplete="username" required maxlength="254" autofocus></label>
+        <label class="field">Password<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <div class="actions"><button class="button" type="submit">Sign in</button></div>
+      </form>
+      <p class="status-line">Forgot your password? Ask the Administrator to set a new one.</p>
+    </section>
+  </main>
+  <footer>ConstructFlow · Real-estate development, from land to handover</footer>
+</body>
+</html>

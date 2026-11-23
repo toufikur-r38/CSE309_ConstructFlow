@@ -69,7 +69,8 @@
     if (!value || typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) return '';
     try {
       const target = new URL(value, origin);
-      if (target.origin !== origin || target.pathname === '/error.html') return '';
+      // Never back to the error or sign-in page itself, which would go round in a loop.
+      if (target.origin !== origin || ['/error.html', '/auth/login.html'].includes(target.pathname)) return '';
       return target.pathname + target.search + target.hash;
     } catch (_) {
       return '';
@@ -139,6 +140,13 @@
     }
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = {MESSAGES, pick, safeFrom, buttons};
-  else document.addEventListener('DOMContentLoaded', () => render(document, location, history));
+  const api = {MESSAGES, pick, safeFrom, buttons};
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else {
+    // The sign-in page also loads this file, but only for safeFrom(); only the error page has #error-title.
+    globalThis.ConstructFlowErrors = api;
+    document.addEventListener('DOMContentLoaded', () => {
+      if (document.getElementById('error-title')) render(document, location, history);
+    });
+  }
 })();

@@ -172,8 +172,8 @@ Each day is one branch and one commit, and ends with a working app.
 
 **Progress**
 
-- [ ] Day 0: plan in repo, two Supabase projects, sign-ups off, dev keys in `.env`
-- [ ] Day 1: foundation and error page
+- [Done] Day 0: plan in repo, two Supabase projects, sign-ups off, dev keys in `.env`
+- [Done] Day 1: foundation and error page
 - [ ] Day 2: login and accounts
 - [ ] Day 3: server store, REST routes and scope
 - [ ] Day 4: frontend cut-over

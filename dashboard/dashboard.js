@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const {C, role, store, url, can, stageLabels, money, short, day, today, isOpen, link, form, table, card, columns, heading, metric, dashboardStat, actionTile, projectRows, activityRows, overdueRows, dueSoonRows} = CF.ui;
+  const {C, user, store, url, can, stageLabels, money, short, day, today, isOpen, link, form, table, card, columns, heading, metric, dashboardStat, actionTile, projectRows, activityRows, overdueRows, dueSoonRows} = CF.ui;
 
   function dashboard(records) {
     const open = records.projects.filter(isOpen);
@@ -24,7 +24,7 @@
       can('decide') ? actionTile('Approvals', pendingDecisions + ' decisions waiting', url('approvals'), 'check', 'primary') : '',
       actionTile('Reports', 'Statements, collections, P&L', url('reports'), 'chart', 'success')
     ].filter(Boolean).slice(0, 6).join('\n');
-    return heading(C.roleNames[role] + ' dashboard', 'Portfolio status · ' + day(today()), can('project') ? link('Start a project', url('project-form'), true) : '') +
+    return heading(C.roleNames[user.role] + ' dashboard', 'Portfolio status · ' + day(today()), can('project') ? link('Start a project', url('project-form'), true) : '') +
       `<div class="dashboard-metrics">
         ${dashboardStat('Running projects', open.length, 'building', 'primary', records.projects.length - open.length + ' closed')}
         ${dashboardStat('Sales booked', short(add('salesValue')), 'invoice', 'info', unitsBy('sold') + unitsBy('booked') + ' flats sold or booked')}
@@ -42,8 +42,20 @@
         card('Overdue buyers', table(['Buyer', 'Flat', 'Overdue', 'Late by', ''], overdueRows(records, records.projects).slice(0, 8), 'No overdue installments.'), 'Follow up by phone before the next site visit.'),
         card('Due in the next 30 days', table(['Due', 'Buyer', 'Flat', 'Installment', 'Amount'], dueSoonRows(records, records.projects).slice(0, 8), 'Nothing falls due in the next 30 days.'))
       )}</div>` +
-      `<div class="section-gap">${card('Recent activity', table(['Date', 'Activity', 'Project', 'Details', 'Role'], activityRows(records.audit.slice(0, 8), records)))}</div>`;
+      `<div class="section-gap">${card('Recent activity', table(['Date', 'Activity', 'Project', 'Details', 'By'], activityRows(records.audit.slice(0, 8), records)))}</div>`;
   }
 
-  CF.pages.dashboard = records => dashboard(records);
+  // systemDashboard(): the Administrator's start page. Accounts and settings only, no business figures.
+  function systemDashboard() {
+    const tiles = [
+      actionTile('Team and accounts', 'Create accounts, change roles, assign projects', url('team'), 'users', 'primary'),
+      actionTile('Activity log', 'Who did what, and when', url('activity'), 'list', 'info'),
+      actionTile('Settings', 'Expense categories and material units', url('settings'), 'check', 'warning')
+    ].join('\n');
+    return heading('Administrator dashboard', 'System administration · ' + day(today())) +
+      `<section class="quick-actions"><h2>Quick actions</h2><div class="action-grid">${tiles}</div></section>` +
+      card('Your role', '<p>The Administrator manages sign-in accounts, roles, project assignments and settings. Project, sales and money records are handled by staff accounts.</p>');
+  }
+
+  CF.pages.dashboard = records => user.role === 'administrator' ? systemDashboard() : dashboard(records);
 })();
