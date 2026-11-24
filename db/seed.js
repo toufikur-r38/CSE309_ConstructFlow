@@ -1,7 +1,7 @@
 /* Creates (or resets) one demo account per role: npm run seed.
    Every demo account gets the password in SEED_PASSWORD, so no password is ever stored in the code.
    Running it again is safe: existing demo accounts get their name, role, password and projects reset.
-   From day 3 it also writes the sample records to app_state. */
+   It also REPLACES every business record in app_state with the five sample projects. */
 const DEMO_DOMAIN = 'example.com';
 const DEMO_ACCOUNTS = [
   {email: 'administrator', name: 'Farhana Chowdhury', role: 'administrator', projects: []},
@@ -50,13 +50,17 @@ async function main() {
   // config loads .env first, so NODE_ENV and SEED_PASSWORD below include the values from that file.
   const config = require('../server/config');
   if (config.isProduction && !process.argv.includes('--force')) {
-    throw new Error('NODE_ENV is production. Seeding resets the demo accounts, so it needs --force: npm run seed -- --force');
+    throw new Error('NODE_ENV is production. Seeding resets the demo accounts and replaces all records, so it needs --force: npm run seed -- --force');
   }
   const seedPassword = process.env.SEED_PASSWORD || '';
   if (seedPassword.length < 8) throw new Error('Set SEED_PASSWORD in .env (at least 8 characters). Every demo account signs in with it.');
   const db = require('../server/db');
   const {adminClient} = require('../server/supabase');
+  const {saveState} = require('../server/state');
+  const {sampleRecords} = require('../core/store.js');
   try {
+    await db.tx(client => saveState(client, sampleRecords()));
+    console.log('Records replaced with the five sample projects.');
     const existing = await findAuthUsers(adminClient);
     for (const account of DEMO_ACCOUNTS) {
       await seedAccount(db, adminClient, existing, account, seedPassword);

@@ -309,7 +309,8 @@
     const can = permission => permissions[permission].includes(role);
 
     function write(action, projectId, description, update, permission) {
-      if (!can(permission)) throw new Error('Your current role cannot perform this action.');
+      // status 403 lets the server answer "no access" instead of a form error.
+      if (!can(permission)) throw Object.assign(new Error('Your current role cannot perform this action.'), {status: 403});
       // Persist a complete copy before replacing memory; failed writes never look successful.
       const latest = storage.getItem(STORAGE_KEY);
       const next = clone(latest ? validateRecords(JSON.parse(latest)) : records);
@@ -426,7 +427,7 @@
           stage(project, ['Approval']);
           if (next.sales.some(sale => sale.projectId === project.id)) throw new Error('Flats cannot be regenerated after sales have started.');
           const storeys = whole(input.storeys, 'Residential floors', 1, 40);
-          const types = (input.types || []).filter(type => String(type.code ?? '').trim()).map(type => ({
+          const types = (Array.isArray(input.types) ? input.types : []).filter(type => String(type.code ?? '').trim()).map(type => ({
             code: text(type.code, 'Flat type').toUpperCase().slice(0, 2), sizeSft: whole(type.sizeSft, 'Flat size', 300, 10000), beds: whole(type.beds, 'Bedrooms', 1, 8)
           }));
           if (!types.length || types.length > 6) throw new Error('Define between one and six flat types.');
@@ -440,6 +441,7 @@
       },
 
       allocateLandowner(projectId, unitIds) {
+        if (!Array.isArray(unitIds)) throw new Error('Select the landowner flats from the list.');
         return write('Landowner share allocated', projectId, unitIds.length + ' flats allocated', (next, project) => {
           stage(project, SITE_STAGES);
           if (!project.land.developerShare) throw new Error('Record the JV share ratio first.');
@@ -665,7 +667,7 @@
       },
 
       decideChange(projectId, changeId, decision) {
-        return write('Budget revision ' + decision.toLowerCase(), projectId, 'Revision decision recorded', (next, project) => {
+        return write('Budget revision ' + String(decision).toLowerCase(), projectId, 'Revision decision recorded', (next, project) => {
           stage(project, SALE_STAGES);
           const change = find(project.changes, changeId, 'Budget revision');
           if (change.status !== 'Pending') throw new Error('This revision has already been decided.');

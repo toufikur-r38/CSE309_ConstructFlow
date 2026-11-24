@@ -12,7 +12,7 @@
     "dev": "node --watch server/index.js",
     "migrate": "node db/migrate.js",
     "seed": "node db/seed.js",
-    "test": "node tests/store.test.cjs && node tests/ui.test.cjs && node --test tests/server.test.cjs"
+    "test": "node tests/store.test.cjs && node tests/ui.test.cjs && node --test tests/server.test.cjs tests/api/access.test.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

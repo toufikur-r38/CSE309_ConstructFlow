@@ -138,12 +138,14 @@ function userRoutes() {
       throw httpError(400, 'Choose the projects from the list.');
     }
     const projects = [...new Set(list)];
-    // Projects still live in each browser until day 3, so only the id format can be checked here.
-    // TODO day 3: check every id against the projects in app_state.
     await db.tx(async client => {
       const {rows} = await client.query('select role from profiles where id = $1 for update', [id]);
       if (!rows[0]) throw httpError(404, 'Account not found.');
       if (!scopedRoles.includes(rows[0].role)) throw httpError(400, 'The Managing Director and the Administrator already see every project.');
+      // Every id must be a project that exists in the records.
+      const known = await client.query(`select array(select p->>'id' from app_state, jsonb_array_elements(data->'projects') p where app_state.id = 1) as ids`);
+      const ids = new Set(known.rows[0].ids);
+      if (!projects.every(project => ids.has(project))) throw httpError(400, 'Choose the projects from the list.');
       await client.query('delete from project_members where user_id = $1', [id]);
       if (projects.length) {
         await client.query('insert into project_members (project_id, user_id, added_by) select unnest($1::text[]), $2, $3', [projects, id, req.user.id]);

@@ -10,13 +10,15 @@ const {notFound, handleErrors} = require('./middleware/errors');
 const {sameOrigin} = require('./middleware/access');
 const {authRoutes} = require('./routes/auth');
 const {userRoutes} = require('./routes/users');
+const {apiRoutes} = require('./routes/api');
 
 // Only these folders and files are public. Server code, .env, db/, tests/, docs/ and
 // node_modules/ are never served, because express.static is pointed at each folder by name.
 const PUBLIC_FOLDERS = ['admin', 'approvals', 'assets', 'auth', 'collections', 'core', 'customers', 'dashboard', 'expenses', 'procurement', 'projects', 'reports', 'sales'];
 const PUBLIC_FILES = ['index.html', 'error.html'];
 
-function createApp() {
+// createApp(options): options.api lets the access tests swap in a fake sign-in and in-memory records.
+function createApp(options = {}) {
   const app = express();
   app.disable('x-powered-by');
   // On Render the app sits behind a proxy; this lets Express see the real https address and client IP.
@@ -73,6 +75,8 @@ function createApp() {
 
   api.use('/auth', authRoutes());
   api.use('/users', userRoutes());
+  // Records and every business write (core/routes.js).
+  api.use(apiRoutes(options.api));
 
   app.use('/api', api);
 
